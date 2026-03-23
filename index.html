@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Azoul — VaultAssist (Single Halo, Click‑to‑Activate)</title>
+<title>Azoul — VaultAssist (Single Halo • Clickable Icons • Scroll)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <!-- Chart.js via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -21,6 +21,7 @@
     --warn:#f59e0b;
     --bad: #ef4444;
     --grid:#e5e7eb;
+    --cardShadow: 0 10px 30px rgba(0,0,0,.18);
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -31,6 +32,7 @@
     background:
       radial-gradient(1100px 520px at 70% -10%, rgba(56,189,248,.15), transparent),
       linear-gradient(135deg, var(--bg-start), var(--bg-end));
+    overflow-y:auto; /* ensure page scrolls */
   }
   .container{max-width:1180px;margin:0 auto;padding:16px}
   .section{margin-top:16px}
@@ -41,15 +43,17 @@
   .card{
     background:#fff;color:var(--ink);
     border-radius:16px;
-    box-shadow:0 10px 30px rgba(0,0,0,.18);
+    box-shadow:var(--cardShadow);
     overflow:hidden;
+    scroll-margin-top: 84px; /* leave room under hero on anchor scroll */
   }
   .card .h{padding:12px 16px;border-bottom:1px solid #e6eef8;font-weight:700;color:#07345d}
   .card .b{padding:14px 16px}
   .kpi{
     background:#fff;color:var(--ink);
     border-radius:16px;padding:14px 16px;
-    box-shadow:0 10px 30px rgba(0,0,0,.18);
+    box-shadow:var(--cardShadow);
+    scroll-margin-top: 84px;
   }
   .kpi .lbl{font-size:12px;color:#07345d;opacity:.85}
   .kpi .val{font-size:30px;font-weight:800;color:#07345d}
@@ -69,16 +73,17 @@
 
   /* HERO (single halo) */
   .hero{
-    position:relative;min-height:380px;overflow:hidden;display:grid;place-items:center;margin-top:8px;
+    position:relative;min-height:390px;overflow:hidden;display:grid;place-items:center;margin-top:8px;
     background:linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.07));
     border:1px solid rgba(255,255,255,.15); border-radius:16px;
   }
   .halo{
-    position:relative;width:380px;height:380px;filter:drop-shadow(0 0 40px rgba(56,189,248,.5));
+    position:relative;width:390px;height:390px;filter:drop-shadow(0 0 40px rgba(56,189,248,.5));
   }
-  .ring{
+  .ring{ /* ONE ring only */
     position:absolute;inset:0;border-radius:50%;
     border:1px dashed rgba(255,255,255,.28);
+    box-shadow: 0 0 120px rgba(56,189,248,.35);
   }
   .orb{
     position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
@@ -116,10 +121,15 @@
   .risk-low{color:#0f766e}.risk-med{color:#b45309}.risk-high{color:#b91c1c}
   .explain{background:#f7fbff;color:#0b1b3b}
 
-  /* Optional image strip (you can delete) */
-  .strip{position:absolute;left:16px;right:16px;bottom:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  .strip img{width:100%;height:110px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.22)}
-  @media (max-width:800px){.strip{display:none}}
+  /* Scroll target pulse */
+  .pulse{
+    animation: pulseBorder .9s ease-out 1;
+    box-shadow: 0 0 0 0 rgba(56,189,248,.0), 0 0 0 3px rgba(56,189,248,.25);
+  }
+  @keyframes pulseBorder{
+    0% { box-shadow: 0 0 0 0 rgba(56,189,248,.55); }
+    100%{ box-shadow: 0 0 0 0 rgba(56,189,248,0); }
+  }
 </style>
 </head>
 <body>
@@ -142,19 +152,13 @@
         </div>
       </div>
 
-      <div class="orbit" id="orbit"><!-- icons injected by JS --></div>
-    </div>
-
-    <!-- Optional preview strip (delete if you don’t need) -->
-    <div class="strip">
-      <img src="sample-1.jpg" alt="preview 1">
-      <img src="sample-2.jpg" alt="preview 2">
-      <img src="sample-3.jpg" alt="preview 3">
+      <!-- Icons injected by JS (one ring) -->
+      <div class="orbit" id="orbit"></div>
     </div>
   </section>
 
   <!-- CONTROLS -->
-  <section class="section card dimmed" id="panelControls">
+  <section class="section card dimmed" id="sec-controls">
     <div class="b">
       <div class="flex">
         <div style="min-width:160px;flex:1">
@@ -196,43 +200,47 @@
     </div>
   </section>
 
-  <!-- KPIs (start blank) -->
-  <section class="section grid-3 dimmed" id="panelKpis">
-    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">—</div></div>
-    <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">—</div></div>
-    <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">—</div></div>
+  <!-- KPIs (start at zero) -->
+  <section class="section grid-3 dimmed" id="sec-kpis">
+    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">$0</div></div>
+    <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">0%</div></div>
+    <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">$0</div></div>
   </section>
 
   <!-- CHARTS row 1 -->
-  <section class="section grid-3 dimmed" id="panelChartsRow1">
-    <div class="card">
+  <section class="section grid-3 dimmed" id="sec-charts-row1">
+    <div class="card" id="sec-branch">
       <div class="h">Approval Rate by Branch</div>
       <div class="b"><canvas id="chartBranchRate" height="220"></canvas></div>
     </div>
-    <div class="card">
+    <div class="card" id="sec-officer">
       <div class="h">Avg Approved Amount by Officer</div>
       <div class="b"><canvas id="chartOfficerAvg" height="220"></canvas></div>
     </div>
-    <div class="card">
+    <div class="card" id="sec-risk">
       <div class="h">Risk Distribution</div>
       <div class="b"><canvas id="chartRisk" height="220"></canvas></div>
     </div>
   </section>
 
   <!-- CHARTS row 2 -->
-  <section class="section grid-2 dimmed" id="panelChartsRow2">
-    <div class="card">
+  <section class="section grid-3 dimmed" id="sec-charts-row2">
+    <div class="card" id="sec-reasons">
       <div class="h">Why Loans Were Made by Channel</div>
-      <div class="b"><canvas id="chartReasonsChannel" height="280"></canvas></div>
+      <div class="b"><canvas id="chartReasonsChannel" height="260"></canvas></div>
     </div>
-    <div class="card">
+    <div class="card" id="sec-bubble">
       <div class="h">Amount vs Risk (Bubble) by Product</div>
-      <div class="b"><canvas id="chartBubble" height="280"></canvas></div>
+      <div class="b"><canvas id="chartBubble" height="260"></canvas></div>
+    </div>
+    <div class="card" id="sec-product">
+      <div class="h">Product Share (Donut)</div>
+      <div class="b"><canvas id="chartProduct" height="260"></canvas></div>
     </div>
   </section>
 
   <!-- TABLE -->
-  <section class="section card dimmed" id="panelTable">
+  <section class="section card dimmed" id="sec-table">
     <div class="h">Recent Loans & Reasons</div>
     <div class="b" style="overflow:auto">
       <table id="loansTable">
@@ -302,20 +310,22 @@ const LOANS = (()=> {
   return out.sort((a,b)=> a.date.localeCompare(b.date) );
 })();
 
-/* ======================= HALO ICONS (CLICKABLE) ======================= */
+/* ======================= HALO ICONS (CLICKABLE → SCROLL) ======================= */
+let isActive = false;
+
 const ICONS = [
-  { emoji:"📊", label:"Analytics", action: activateDashboard },
-  { emoji:"🔒", label:"Security",  action: activateDashboard },
-  { emoji:"💳", label:"Payments",  action: activateDashboard },
-  { emoji:"📶", label:"Digital",   action: activateDashboard },
-  { emoji:"🤝", label:"Partners",  action: activateDashboard },
-  { emoji:"🌐", label:"Global",    action: activateDashboard },
-  { emoji:"📡", label:"Signals",   action: activateDashboard },
+  { emoji:"📊", label:"Analytics", target:"#sec-kpis" },
+  { emoji:"🌐", label:"Global",    target:"#sec-branch" },
+  { emoji:"💳", label:"Payments",  target:"#sec-product" },
+  { emoji:"📶", label:"Digital",   target:"#sec-reasons" },
+  { emoji:"🤝", label:"Partners",  target:"#sec-table" },
+  { emoji:"📡", label:"Signals",   target:"#sec-bubble" },
+  { emoji:"🔒", label:"Security",  target:"#sec-risk" },
 ];
 
 (function placeOrbitIcons(){
   const orbit = document.getElementById('orbit');
-  const r = 165;                          // single halo radius
+  const r = 170; // single halo radius
   ICONS.forEach((it,i)=>{
     const a = (i/ICONS.length)*Math.PI*2; // evenly spaced
     const x = Math.cos(a)*r, y = Math.sin(a)*r;
@@ -324,12 +334,22 @@ const ICONS = [
     d.title = it.label;
     d.textContent = it.emoji;
     d.style.transform = `translate(${x}px, ${y}px)`;
-    d.addEventListener('click', ()=> it.action(it.label));
+    d.addEventListener('click', ()=> onIconClick(it.target));
     orbit.appendChild(d);
   });
 })();
 
-/* ======================= UI HOOKS & FILTERS ======================= */
+function onIconClick(targetSelector){
+  if(!isActive){ activateDashboard(); }
+  const el = document.querySelector(targetSelector);
+  if(!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  el.classList.remove('pulse'); // restart animation if clicked repeatedly
+  void el.offsetWidth;
+  el.classList.add('pulse');
+}
+
+/* ======================= FILTERS ======================= */
 const elRole     = document.getElementById('role');
 const elOfficerB = document.getElementById('officerBox');
 const elOfficer  = document.getElementById('officer');
@@ -354,7 +374,7 @@ const kpiTotal = document.getElementById('kpiTotal');
 const kpiRate  = document.getElementById('kpiRate');
 const kpiAvg   = document.getElementById('kpiAvg');
 
-let chBranchRate, chOfficerAvg, chRisk, chReasonsChannel, chBubble;
+let chBranchRate, chOfficerAvg, chRisk, chReasonsChannel, chBubble, chProduct;
 
 function filterLoans(){
   const days = +elRange.value;
@@ -368,7 +388,6 @@ function filterLoans(){
     const branchOk = (elBranch.value==="All branches" || l.branch===elBranch.value);
     const roleOk = elRole.value==="Officer" ? l.officer===elOfficer.value
                  : elRole.value==="Manager" ? branchOk : true; // HR sees all
-    // For Manager, keep branch filter but roleOk already requires branchOk; to avoid double‑filtering, allow branchOk via roleOk.
     return within && searchOk && prodOk && (elRole.value==="Manager"? true : branchOk) && roleOk;
   });
 }
@@ -454,7 +473,7 @@ function updateCharts(loans){
     chReasonsChannel
   );
 
-  // 5) Amount vs Risk (bubble) by product
+  // 5) Amount vs Risk (bubble)
   const colors=[OCEAN.primary,OCEAN.primaryStrong,OCEAN.accent,'#93c5fd','#1d4ed8'];
   const bubDatasets = PRODUCTS.map((p,i)=>({
     label:p,
@@ -467,6 +486,16 @@ function updateCharts(loans){
     { datasets: bubDatasets },
     { parsing:false, scales:{ x:{min:0,max:1,title:{display:true,text:'Risk'}}, y:{title:{display:true,text:'Amount'}, ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k'}} } },
     chBubble
+  );
+
+  // 6) Product share donut
+  const prodCounts = PRODUCTS.map(p=> loans.filter(l=>l.product===p).length);
+  chProduct = makeOrUpdateChart(
+    document.getElementById('chartProduct'),
+    'doughnut',
+    { labels: PRODUCTS, datasets:[{ data: prodCounts, backgroundColor:[OCEAN.primary,OCEAN.primaryStrong,OCEAN.accent,'#93c5fd','#1d4ed8'] }]},
+    { plugins:{legend:{position:'bottom'}} },
+    chProduct
   );
 }
 
@@ -517,22 +546,15 @@ function updateTable(loans){
   });
 }
 
-/* ======================= ACTIVATE ON CLICK ======================= */
-let isActive = false;
-function activateDashboard(sourceLabel=""){
+/* ======================= ACTIVATE ON FIRST CLICK ======================= */
+function activateDashboard(){
   if(isActive) return;
   isActive = true;
-
-  // “Light up” the dashboard
-  ['panelControls','panelKpis','panelChartsRow1','panelChartsRow2','panelTable'].forEach(id=>{
+  ['sec-controls','sec-kpis','sec-charts-row1','sec-charts-row2','sec-table'].forEach(id=>{
     const el = document.getElementById(id);
     el.classList.remove('dimmed'); el.classList.add('active');
   });
-
-  // Populate KPIs + charts + table
   refreshAll();
-
-  // Optional: subtle pulse to acknowledge the click
   const halo = document.getElementById('halo');
   halo.animate([{transform:'scale(1)'},{transform:'scale(1.02)'},{transform:'scale(1)'}],{duration:420,easing:'ease-out'});
 }
@@ -558,8 +580,7 @@ function refreshAll(){
   updateTable(loans);
 }
 
-/* NOTE: We do not render data until the user clicks a halo icon.
-   KPIs remain “—” and panels stay dimmed. */
+/* Start with KPIs at 0 and panels dimmed; data loads only after icon click */
 </script>
 
 </body>
