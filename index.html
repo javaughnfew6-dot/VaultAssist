@@ -22,32 +22,26 @@ import {
   ZAxis,
   Treemap,
 } from "recharts";
-import { Search, Download, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Download, Info, Wifi, Globe, Lock, Handshake, Banknote, Signal, BarChart3 } from "lucide-react";
 
 /**
  * ==========================================================
- * Azoul — VaultAssist (Ocean Blue UI + Images)
+ * Azoul — VaultAssist (Halo Ocean Theme)
  * ----------------------------------------------------------
- * Includes:
- *  - Ocean blue background with white cards
- *  - Role-based views (Officer / Manager / HR)
- *  - Risk scoring (DTI, LTV, Credit Score) + bands
- *  - Charts: Branch approvals, Officer avg, Reasons×Channel, Risk dist,
- *            Bubble (Amount vs Risk by Product), Treemap (Amount by Product×Branch), Donut
- *  - Loan explanations (API-ready with local fallback)
- *  - CSV export
- *  - Image gallery (place your 3 JPGs in /public/azoul/)
+ * "Ocean blue" full-screen gradient background, white-glow hero with
+ * central bank icon and circular halo icons — then your analytics below.
+ * Includes roles, risk model, charts, explanations, and CSV export.
  * ==========================================================
  */
 
 /* ---------------------- THEME ---------------------- */
 const OCEAN = {
-  bgStart: "#0a2540", // deep ocean blue
-  bgEnd:   "#0b5394", // mid ocean blue
+  bgStart: "#061a2e", // deeper ocean
+  bgEnd:   "#0b3c6e", // mid ocean
   card:    "#ffffff",
   text:    "#0b1b3b",
-  primary: "#0284c7", // cyan-700
-  primarySoft: "#38bdf8", // sky-400
+  primary: "#38bdf8", // sky-400
+  primaryStrong: "#0ea5e9", // sky-500
   accent:  "#22d3ee", // cyan-300
   good:    "#10b981",
   warn:    "#f59e0b",
@@ -68,8 +62,8 @@ const OFFICERS = ["A. Patel", "M. Chen", "R. Johnson", "S. Davis", "K. Garcia"];
 function rng(min:number,max:number){return Math.random()*(max-min)+min}
 function pick<T>(arr:T[]){return arr[Math.floor(Math.random()*arr.length)]}
 function riskScore(dti:number, ltv:number, cs:number){
-  const ndti = Math.min(1, dti/0.5);           // 0..1 (>=50% risky)
-  const nltv = Math.min(1, ltv/0.95);          // 0..1 (>=95% risky)
+  const ndti = Math.min(1, dti/0.5);            // 0..1 (>=50% risky)
+  const nltv = Math.min(1, ltv/0.95);           // 0..1 (>=95% risky)
   const ncs  = 1 - Math.min(1, (cs-550)/(820-550)); // 1 bad -> 0 great
   return +(0.4*ndti + 0.35*nltv + 0.25*ncs).toFixed(2);
 }
@@ -150,32 +144,75 @@ async function fetchAiExplanation(loan:any){
   }catch{ return localExplanation(loan); }
 }
 
-/* ---------------- IMAGE GALLERY ---------------- */
-// Place 3 images in /public/azoul/ named sample-1.jpg, sample-2.jpg, sample-3.jpg
-const SAMPLE_IMAGES = ["/azoul/sample-1.jpg","/azoul/sample-2.jpg","/azoul/sample-3.jpg"];
-
-function Gallery(){
-  const [i,setI]=useState(0);
-  const next=()=>setI((p)=> (p+1)%SAMPLE_IMAGES.length);
-  const prev=()=>setI((p)=> (p-1+SAMPLE_IMAGES.length)%SAMPLE_IMAGES.length);
+/* ------------------- HALO HERO ------------------- */
+function BankGlyph(){
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/20 shadow-md" style={{background:"rgba(255,255,255,0.06)"}}>
-      <img src={SAMPLE_IMAGES[i]} alt="Azoul samples" className="w-full h-56 object-cover" />
-      <div className="absolute inset-0 flex items-center justify-between px-2">
-        <Button variant="outline" size="icon" onClick={prev} className="bg-white/80 hover:bg-white"><ChevronLeft/></Button>
-        <Button variant="outline" size="icon" onClick={next} className="bg-white/80 hover:bg-white"><ChevronRight/></Button>
+    <svg width="84" height="84" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-label="Bank icon">
+      <path d="M3 10h18"/>
+      <path d="M5 10v10"/>
+      <path d="M9 10v10"/>
+      <path d="M13 10v10"/>
+      <path d="M17 10v10"/>
+      <path d="M3 20h18"/>
+      <path d="M12 4 3 8h18l-9-4z"/>
+    </svg>
+  );
+}
+
+const ringIcons = [
+  { Icon: Globe, label: "Global" },
+  { Icon: BarChart3, label: "Analytics" },
+  { Icon: Handshake, label: "Partners" },
+  { Icon: Wifi, label: "Digital" },
+  { Icon: Lock, label: "Security" },
+  { Icon: Banknote, label: "Payments" },
+  { Icon: Signal, label: "Signals" },
+];
+
+function HaloHero({ onExport }:{ onExport: ()=>void }){
+  const radius = 160; // px
+  return (
+    <div style={{ position:'relative', minHeight: 340, overflow:'hidden' }}>
+      {/* background orbs */}
+      <div style={{ position:'absolute', inset:0, pointerEvents:'none' }}>
+        <div style={{ position:'absolute', width:320, height:320, left:'50%', top:'50%', transform:'translate(-50%,-50%)', borderRadius:'9999px', boxShadow:`0 0 120px ${OCEAN.primaryStrong}66, inset 0 0 80px ${OCEAN.accent}55`, border:'1px solid rgba(255,255,255,0.15)'}}/>
+        <div style={{ position:'absolute', width:520, height:520, left:'50%', top:'50%', transform:'translate(-50%,-50%)', borderRadius:'9999px', border:'1px dashed rgba(255,255,255,0.18)' }}/>
       </div>
-      <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
-        {SAMPLE_IMAGES.map((_,idx)=>(
-          <span key={idx} className={`h-1.5 w-6 rounded-full ${idx===i? 'bg-white':'bg-white/50'}`}/>
-        ))}
+
+      {/* center glyph + title */}
+      <div className="flex flex-col items-center justify-center pt-8">
+        <div style={{ width:120, height:120, borderRadius:'9999px', display:'grid', placeItems:'center', background:'radial-gradient( circle at 50% 50%, rgba(255,255,255,0.22), rgba(255,255,255,0.06) )', boxShadow:`0 0 28px ${OCEAN.primary}aa, inset 0 0 12px ${OCEAN.accent}88`, border:'1px solid rgba(255,255,255,0.35)'}}>
+          <BankGlyph/>
+        </div>
+        <div className="mt-3 text-center">
+          <div className="text-3xl font-semibold tracking-wide" style={{textShadow:'0 0 16px rgba(56, 189, 248,.55)'}}>BANK</div>
+          <div className="text-sm text-white/80">Azoul • VaultAssist</div>
+        </div>
+        <div className="mt-4">
+          <Button onClick={onExport} className="bg-white text-sky-900 hover:bg-white/90">Export CSV</Button>
+        </div>
+      </div>
+
+      {/* orbiting icons */}
+      <div style={{ position:'absolute', left:'50%', top:'50%' }}>
+        {ringIcons.map((R, idx)=>{
+          const angle = (idx / ringIcons.length) * Math.PI * 2; // 0..2π
+          const x = Math.cos(angle) * radius; const y = Math.sin(angle) * radius;
+          return (
+            <div key={idx} style={{ position:'absolute', transform:`translate(${x}px, ${y}px)` }}>
+              <div style={{ width:56, height:56, borderRadius:9999, display:'grid', placeItems:'center', background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.25)', boxShadow:`0 0 18px ${OCEAN.primary}aa` }} title={R.label}>
+                <R.Icon color="#ffffff" size={24}/>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 /* ------------------- MAIN ------------------- */
-export default function AzoulVaultAssistOcean(){
+export default function AzoulVaultAssistHalo(){
   // Role & filters
   const [role, setRole] = useState<"Officer"|"Manager"|"HR">("Manager");
   const [officer, setOfficer] = useState<string>(OFFICERS[0]);
@@ -245,7 +282,6 @@ export default function AzoulVaultAssistOcean(){
     return Object.entries(bands).map(([name,value])=>({name,value}));
   },[filteredLoans]);
 
-  // Bubble: amount vs riskScore sized by amount, colored by product
   const bubbleData = useMemo(()=>{
     return PRODUCTS.map(p=>({
       name:p,
@@ -253,7 +289,6 @@ export default function AzoulVaultAssistOcean(){
     }));
   },[filteredLoans]);
 
-  // Treemap: total amount by product×branch
   const treemapData = useMemo(()=>{
     const map = new Map<string, Map<string, number>>();
     for(const l of filteredLoans){
@@ -285,93 +320,77 @@ export default function AzoulVaultAssistOcean(){
     setExplanations(prev=>({...prev,[id]:text}));
   },[filteredLoans, explanations, expandingId]);
 
-  const reasonPalette = [OCEAN.primary, OCEAN.primarySoft, OCEAN.accent, "#93c5fd", "#1d4ed8", "#06b6d4", "#94a3b8"];
+  const reasonPalette = [OCEAN.primary, OCEAN.primaryStrong, OCEAN.accent, "#93c5fd", "#1d4ed8", "#06b6d4", "#94a3b8"];
 
   return (
     <TooltipProvider>
       <div style={{
         minHeight:'100vh',
-        background:`linear-gradient(135deg, ${OCEAN.bgStart} 0%, ${OCEAN.bgEnd} 100%)`,
+        background:`radial-gradient(1200px 600px at 70% -10%, rgba(56,189,248,.15), transparent), linear-gradient(135deg, ${OCEAN.bgStart} 0%, ${OCEAN.bgEnd} 100%)`,
         color: 'white'
       }}>
-        {/* Header */}
-        <header className="sticky top-0 z-20" style={{
-          background:'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))',
-          backdropFilter:'blur(6px)', borderBottom:'1px solid rgba(255,255,255,0.15)'
-        }}>
-          <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-3 items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Azoul</h1>
-              <p className="text-xs text-white/80">VaultAssist — Banking Intelligence</p>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={exportCSV} className="bg-white text-sky-900 hover:bg-white/90"><Download className="h-4 w-4 mr-2"/>Export CSV</Button>
-            </div>
-          </div>
-        </header>
+        {/* Hero */}
+        <section className="max-w-7xl mx-auto px-4 pt-10">
+          <HaloHero onExport={exportCSV}/>
+        </section>
 
-        {/* Top: Gallery & Filters */}
-        <section className="max-w-7xl mx-auto px-4 pt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-1">
-            <Gallery/>
+        {/* Controls */}
+        <section className="max-w-7xl mx-auto px-4 pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+          <div>
+            <label className="text-xs text-white/80">Role</label>
+            <Select value={role} onValueChange={(v:any)=>setRole(v)}>
+              <SelectTrigger className="bg-white/90 text-sky-900"><SelectValue/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Officer">Officer</SelectItem>
+                <SelectItem value="Manager">Manager</SelectItem>
+                <SelectItem value="HR">HR</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+          {role==="Officer" && (
             <div>
-              <label className="text-xs text-white/80">Role</label>
-              <Select value={role} onValueChange={(v:any)=>setRole(v)}>
+              <label className="text-xs text-white/80">Officer</label>
+              <Select value={officer} onValueChange={setOfficer}>
                 <SelectTrigger className="bg-white/90 text-sky-900"><SelectValue/></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Officer">Officer</SelectItem>
-                  <SelectItem value="Manager">Manager</SelectItem>
-                  <SelectItem value="HR">HR</SelectItem>
-                </SelectContent>
+                <SelectContent>{OFFICERS.map(o=> <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            {role==="Officer" && (
-              <div>
-                <label className="text-xs text-white/80">Officer</label>
-                <Select value={officer} onValueChange={setOfficer}>
-                  <SelectTrigger className="bg-white/90 text-sky-900"><SelectValue/></SelectTrigger>
-                  <SelectContent>{OFFICERS.map(o=> <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            )}
-            <div>
-              <label className="text-xs text-white/80">Branch</label>
-              <Select value={branch} onValueChange={setBranch}>
-                <SelectTrigger className="bg-white/90 text-sky-900"><SelectValue/></SelectTrigger>
-                <SelectContent>{["All branches",...BRANCHES].map(b=> <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs text-white/80">Product</label>
-              <Select value={product} onValueChange={setProduct}>
-                <SelectTrigger className="bg-white/90 text-sky-900"><SelectValue/></SelectTrigger>
-                <SelectContent>{["All products",...PRODUCTS].map(p=> <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs text-white/80">Date Range</label>
-              <Tabs value={range} onValueChange={setRange}>
-                <TabsList className="grid grid-cols-3 bg-white/15 text-white">
-                  <TabsTrigger value="last30">30d</TabsTrigger>
-                  <TabsTrigger value="last90">90d</TabsTrigger>
-                  <TabsTrigger value="last180">180d</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            <div className="flex flex-col">
-              <label className="text-xs text-white/80">Search</label>
-              <div className="relative">
-                <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-white/90"/>
-                <Input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Find loans, officers, reasons…" className="pl-8 bg-white/90 text-sky-900"/>
-              </div>
+          )}
+          <div>
+            <label className="text-xs text-white/80">Branch</label>
+            <Select value={branch} onValueChange={setBranch}>
+              <SelectTrigger className="bg-white/90 text-sky-900"><SelectValue/></SelectTrigger>
+              <SelectContent>{["All branches",...BRANCHES].map(b=> <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-white/80">Product</label>
+            <Select value={product} onValueChange={setProduct}>
+              <SelectTrigger className="bg-white/90 text-sky-900"><SelectValue/></SelectTrigger>
+              <SelectContent>{["All products",...PRODUCTS].map(p=> <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-white/80">Date Range</label>
+            <Tabs value={range} onValueChange={setRange}>
+              <TabsList className="grid grid-cols-3 bg-white/15 text-white">
+                <TabsTrigger value="last30">30d</TabsTrigger>
+                <TabsTrigger value="last90">90d</TabsTrigger>
+                <TabsTrigger value="last180">180d</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          <div className="flex flex-col">
+            <label className="text-xs text-white/80">Search</label>
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-white/90"/>
+              <Input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Find loans, officers, reasons…" className="pl-8 bg-white/90 text-sky-900"/>
             </div>
           </div>
         </section>
 
         {/* KPIs */}
-        <section className="max-w-7xl mx-auto px-4 py-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <section className="max-w-7xl mx-auto px-4 py-5 grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { label:'Total Loaned', value: fmtCurrency(kpis.totalLoaned) },
             { label:'Approval Rate', value: pct(kpis.approvalRate) },
@@ -395,7 +414,7 @@ export default function AzoulVaultAssistOcean(){
                   <XAxis dataKey="name"/>
                   <YAxis tickFormatter={(v)=>pct(v as number)}/>
                   <Tooltip formatter={(v:number)=>pct(v as number)}/>
-                  <Bar dataKey="rate" name="Approval Rate" fill={OCEAN.primary}/>
+                  <Bar dataKey="rate" name="Approval Rate" fill={OCEAN.primaryStrong}/>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -410,7 +429,7 @@ export default function AzoulVaultAssistOcean(){
                   <XAxis dataKey="name"/>
                   <YAxis tickFormatter={(v)=>`$${(Number(v)/1000).toFixed(0)}k`}/>
                   <Tooltip formatter={(v:number)=>fmtCurrency(v as number)}/>
-                  <Bar dataKey="avg" name="Avg Amount" fill={OCEAN.primarySoft}/>
+                  <Bar dataKey="avg" name="Avg Amount" fill={OCEAN.primary}/>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -492,14 +511,14 @@ export default function AzoulVaultAssistOcean(){
             <div className="px-1 pb-1 font-semibold text-sky-900">Amount by Product × Branch (Treemap)</div>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <Treemap data={treemapData.children} dataKey="size" nameKey="name" aspectRatio={4/3} stroke="#fff" fill={OCEAN.primarySoft} />
+                <Treemap data={treemapData.children} dataKey="size" nameKey="name" aspectRatio={4/3} stroke="#fff" fill={OCEAN.primaryStrong} />
               </ResponsiveContainer>
             </div>
           </div>
         </section>
 
         {/* Loans Table with Explanations */}
-        <section className="max-w-7xl mx-auto px-4 mt-4 pb-8">
+        <section className="max-w-7xl mx-auto px-4 mt-4 pb-10">
           <div className="rounded-xl shadow-lg overflow-hidden" style={{background:OCEAN.card, color:OCEAN.text}}>
             <div className="px-4 py-3 border-b" style={{borderColor:'#e6eef8'}}>
               <div className="text-sky-900 font-semibold">Recent Loans & Reasons</div>
@@ -559,22 +578,10 @@ export default function AzoulVaultAssistOcean(){
         </section>
 
         {/* Footer */}
-        <footer className="pb-8 text-center text-xs text-white/80">
+        <footer className="pb-10 text-center text-xs text-white/80">
           Azoul • VaultAssist • <span className="italic">Quasinss</span>
         </footer>
       </div>
     </TooltipProvider>
   );
 }
-
-/* =============================================================
-   HOW TO USE IMAGES
-   -------------------------------------------------------------
-   1) Create folder: public/azoul/
-   2) Save your three JPGs as: sample-1.jpg, sample-2.jpg, sample-3.jpg
-   3) The Gallery component will load them automatically.
-
-   OPTIONAL BACKEND (AI explanations):
-   - Implement POST /api/explain that returns { text }
-   - Frontend will call it and fallback to localExplanation() if unreachable.
-   ============================================================= */
