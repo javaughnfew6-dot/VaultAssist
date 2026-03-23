@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Azoul — VaultAssist (Single Halo • KPIs hidden numbers)</title>
+<title>Azoul — VaultAssist (Halo • User Info • KPIs)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <!-- Chart.js via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -13,13 +13,12 @@
     --bg-end:#0b3f73;        /* ocean mid */
     --white:#ffffff;
     --ink:#0b1b3b;
-    --sky300:#7dd3fc;
     --sky400:#38bdf8;
     --sky500:#0ea5e9;
     --cyan300:#22d3ee;
     --good:#10b981;
     --warn:#f59e0b;
-    --bad: #ef4444;
+    --bad:#ef4444;
     --grid:#e5e7eb;
     --cardShadow: 0 10px 30px rgba(0,0,0,.18);
   }
@@ -32,7 +31,7 @@
     background:
       radial-gradient(1100px 520px at 70% -10%, rgba(56,189,248,.15), transparent),
       linear-gradient(135deg, var(--bg-start), var(--bg-end));
-    overflow-y:auto; /* allow scrolling */
+    overflow-y:auto;
   }
   .container{max-width:1180px;margin:0 auto;padding:16px}
   .section{margin-top:16px}
@@ -45,34 +44,10 @@
     background:#fff;color:var(--ink);
     border-radius:16px; box-shadow:var(--cardShadow);
     overflow:hidden;
-    scroll-margin-top: 84px; /* nice offset under hero on anchor scroll */
+    scroll-margin-top: 84px; /* when scrolled-to from halo */
   }
   .card .h{padding:12px 16px;border-bottom:1px solid #e6eef8;font-weight:700;color:#07345d}
   .card .b{padding:14px 16px}
-
-  /* KPI bar (labels visible, numbers removed via em‑dash) */
-  .kpi{
-    background:#fff;color:var(--ink);
-    border-radius:16px;padding:14px 16px; box-shadow:var(--cardShadow);
-  }
-  .kpi .lbl{font-size:12px;color:#07345d;opacity:.85}
-  .kpi .val{
-    font-size:30px;font-weight:800;color:#07345d;
-    letter-spacing:.5px;
-  }
-
-  /* Controls */
-  label{font-size:12px;opacity:.9}
-  select,input{
-    appearance:none; border:1px solid #cfe5fb; background:#fff; color:#07345d;
-    border-radius:12px; padding:10px 12px; width:100%;
-  }
-  .btn{
-    background:#fff;color:#07345d;border:1px solid #cfe5fb;border-radius:12px;padding:10px 14px;
-    box-shadow:0 6px 18px rgba(0,0,0,.10);cursor:pointer
-  }
-  .btn:hover{background:#f9fdff}
-  .btn.small{padding:6px 10px}
 
   /* HERO (single halo) */
   .hero{
@@ -80,8 +55,8 @@
     background:linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.07));
     border:1px solid rgba(255,255,255,.15); border-radius:16px;
   }
-  .halo{ position:relative;width:390px;height:390px;filter:drop-shadow(0 0 40px rgba(56,189,248,.5)); }
-  .ring{ position:absolute;inset:0;border-radius:50%; border:1px dashed rgba(255,255,255,.28); box-shadow: 0 0 120px rgba(56,189,248,.35); }
+  .halo{position:relative;width:390px;height:390px;filter:drop-shadow(0 0 40px rgba(56,189,248,.5));}
+  .ring{position:absolute;inset:0;border-radius:50%;border:1px dashed rgba(255,255,255,.28);box-shadow: 0 0 120px rgba(56,189,248,.35);}
   .orb{
     position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
     width:150px;height:150px;border-radius:50%;
@@ -100,15 +75,32 @@
     background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);
     box-shadow:0 0 16px rgba(56,189,248,.55);
     display:grid;place-items:center;font-size:22px;cursor:pointer;
-    transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
-    user-select:none;
+    transition:transform .2s ease, box-shadow .2s ease, background .2s ease; user-select:none;
   }
   .ico:hover{background:rgba(255,255,255,.18);transform:scale(1.05)}
   .ico:active{transform:scale(0.98)}
 
-  /* Dim panels until activation */
+  /* Panels */
   .dimmed{opacity:.25;filter:grayscale(.1);pointer-events:none;transition:opacity .25s ease, filter .25s ease}
   .active{opacity:1;filter:none;pointer-events:auto}
+
+  /* KPI tiles */
+  .kpi{background:#fff;color:var(--ink);border-radius:16px;padding:14px 16px;box-shadow:var(--cardShadow)}
+  .kpi .lbl{font-size:12px;color:#07345d;opacity:.85}
+  .kpi .val{font-size:30px;font-weight:800;color:#07345d;letter-spacing:.5px}
+
+  /* Inputs */
+  label{font-size:12px;opacity:.9}
+  select,input{
+    appearance:none; border:1px solid #cfe5fb; background:#fff; color:#07345d;
+    border-radius:12px; padding:10px 12px; width:100%;
+  }
+  .btn{
+    background:#fff;color:#07345d;border:1px solid #cfe5fb;border-radius:12px;padding:10px 14px;
+    box-shadow:0 6px 18px rgba(0,0,0,.10);cursor:pointer
+  }
+  .btn:hover{background:#f9fdff}
+  .btn.small{padding:6px 10px}
 
   /* Table */
   table{width:100%;border-collapse:collapse}
@@ -118,12 +110,14 @@
   .risk-low{color:#0f766e}.risk-med{color:#b45309}.risk-high{color:#b91c1c}
   .explain{background:#f7fbff;color:#0b1b3b}
 
-  /* Pulse highlight when icon scrolls to a section */
+  /* Section pulse highlight */
   .pulse{ animation: pulseBorder .9s ease-out 1; box-shadow: 0 0 0 3px rgba(56,189,248,.25); }
   @keyframes pulseBorder{
     0% { box-shadow: 0 0 0 3px rgba(56,189,248,.55); }
     100%{ box-shadow: 0 0 0 0 rgba(56,189,248,0); }
   }
+
+  .note{font-size:12px; color:#0a3761; opacity:.85}
 </style>
 </head>
 <body>
@@ -134,9 +128,7 @@
   <section class="hero">
     <div class="halo" id="halo">
       <div class="ring"></div>
-
       <div class="orb">
-        <!-- bank glyph -->
         <svg viewBox="0 0 24 24" width="76" height="76" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-label="Bank">
           <path d="M3 10h18"/><path d="M5 10v10"/><path d="M9 10v10"/><path d="M13 10v10"/><path d="M17 10v10"/><path d="M3 20h18"/><path d="M12 4 3 8h18l-9-4z"/>
         </svg>
@@ -145,9 +137,33 @@
           <div class="bank-sub">Azoul • VaultAssist</div>
         </div>
       </div>
+      <div class="orbit" id="orbit"><!-- icons injected by JS --></div>
+    </div>
+  </section>
 
-      <!-- Icons injected by JS (one ring) -->
-      <div class="orbit" id="orbit"></div>
+  <!-- USER INFO (Name, Gmail, Phone) -->
+  <section class="section card" id="sec-user">
+    <div class="h">User Info</div>
+    <div class="b">
+      <form id="userForm" class="flex" autocomplete="on" novalidate>
+        <div style="min-width:200px;flex:1">
+          <label for="uName">Name</label>
+          <input id="uName" name="name" placeholder="Enter your name" maxlength="60">
+        </div>
+        <div style="min-width:240px;flex:1.2">
+          <label for="uEmail">Gmail</label>
+          <input id="uEmail" type="email" name="email" placeholder="you@gmail.com" pattern="^[^\\s@]+@gmail\\.com$" title="Please use a Gmail address.">
+        </div>
+        <div style="min-width:180px;flex:1">
+          <label for="uPhone">Phone</label>
+          <input id="uPhone" name="phone" placeholder="(555) 123‑4567" pattern="^[0-9()\\-\\s+]{7,20}$" title="Enter digits and ()-+ only.">
+        </div>
+        <div style="align-self:end;display:flex;gap:8px">
+          <button class="btn" type="submit">Save</button>
+          <button class="btn" type="button" id="clearUser">Clear</button>
+        </div>
+      </form>
+      <div class="note" id="userNote">Saved locally to your browser only. We don’t upload contact info.</div>
     </div>
   </section>
 
@@ -194,11 +210,11 @@
     </div>
   </section>
 
-  <!-- KPI BAR (labels only; numbers removed) -->
+  <!-- KPI BAR (numbers visible again) -->
   <section class="section grid-3 dimmed" id="sec-kpis">
-    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">—</div></div>
-    <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">—</div></div>
-    <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">—</div></div>
+    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">$0</div></div>
+    <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">0%</div></div>
+    <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">$0</div></div>
   </section>
 
   <!-- CHARTS row 1 -->
@@ -240,12 +256,16 @@
       <table id="loansTable">
         <thead>
           <tr>
-            <th>Date</th><th>Loan #</th><th>Branch</th><th>Product</th><th style="text-align:right">Amount</th>
+            <th>Date</th><th>Loan #</th><th>Branch</th><th>Product</th>
+            <th style="text-align:right">Amount</th>
             <th>Status</th><th>Why (Category)</th><th>Risk</th><th>Officer</th><th>Channel</th><th>Explain</th>
           </tr>
         </thead>
         <tbody id="tbodyLoans"></tbody>
       </table>
+      <div class="note" style="margin-top:8px">
+        Officers are anonymized (Officer A–E). No real names are used anywhere.
+      </div>
     </div>
   </section>
 
@@ -264,12 +284,43 @@ const OCEAN = {
   bad:  getComputedStyle(document.documentElement).getPropertyValue('--bad').trim()
 };
 
+/* ======================= USER INFO (local only) ======================= */
+(function userInfo(){
+  const f = document.getElementById('userForm');
+  const name = document.getElementById('uName');
+  const email = document.getElementById('uEmail');
+  const phone = document.getElementById('uPhone');
+  const clearBtn = document.getElementById('clearUser');
+  const note = document.getElementById('userNote');
+  // load if exists
+  try{
+    const saved = JSON.parse(localStorage.getItem('azoul_user') || 'null');
+    if(saved){ name.value=saved.name||''; email.value=saved.email||''; phone.value=saved.phone||''; }
+  }catch{}
+  f.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    // basic validation (gmail only)
+    const emailOk = /^[^\s@]+@gmail\.com$/i.test(email.value || '');
+    const phoneOk = !phone.value || /^[0-9()\-\s+]{7,20}$/.test(phone.value);
+    if(!emailOk){ email.focus(); note.textContent = 'Please provide a valid Gmail address (…@gmail.com).'; return; }
+    if(!phoneOk){ phone.focus(); note.textContent = 'Phone: digits and ()-+ only.'; return; }
+    localStorage.setItem('azoul_user', JSON.stringify({ name:name.value?.trim()||'', email:email.value?.trim()||'', phone:phone.value?.trim()||'' }));
+    note.textContent = 'Saved locally. (Use Clear to remove.)';
+  });
+  clearBtn.addEventListener('click', ()=>{
+    localStorage.removeItem('azoul_user');
+    name.value=''; email.value=''; phone.value='';
+    note.textContent='Saved locally to your browser only. We don’t upload contact info.';
+  });
+})();
+
 /* ======================= DATA + RISK ======================= */
 const BRANCHES = ["Downtown","Midtown","Uptown","Riverside"];
 const PRODUCTS = ["Mortgage","Auto","Personal","SMB","Student"];
 const REASONS  = ["Home purchase","Debt consolidation","Vehicle purchase","Working capital","Education","Emergency expenses","Refinance"];
 const CHANNELS = ["In-Branch","Online","Broker"];
-const OFFICERS = ["A. Patel","M. Chen","R. Johnson","S. Davis","K. Garcia"];
+/* anonymized officers only */
+const OFFICERS = ["Officer A","Officer B","Officer C","Officer D","Officer E"];
 
 function rng(min,max){return Math.random()*(max-min)+min}
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
@@ -308,7 +359,7 @@ const LOANS = (()=> {
 let isActive = false;
 
 const ICONS = [
-  { emoji:"📊", label:"Analytics", target:"#sec-branch" },
+  { emoji:"📊", label:"Analytics", target:"#sec-kpis" },   // KPIs first
   { emoji:"🌐", label:"Global",    target:"#sec-branch" },
   { emoji:"💳", label:"Payments",  target:"#sec-product" },
   { emoji:"📶", label:"Digital",   target:"#sec-reasons" },
@@ -319,14 +370,12 @@ const ICONS = [
 
 (function placeOrbitIcons(){
   const orbit = document.getElementById('orbit');
-  const r = 170; // single halo radius
+  const r = 170;
   ICONS.forEach((it,i)=>{
-    const a = (i/ICONS.length)*Math.PI*2; // evenly spaced
+    const a = (i/ICONS.length)*Math.PI*2;
     const x = Math.cos(a)*r, y = Math.sin(a)*r;
     const d = document.createElement('div');
-    d.className='ico';
-    d.title = it.label;
-    d.textContent = it.emoji;
+    d.className='ico'; d.title = it.label; d.textContent = it.emoji;
     d.style.transform = `translate(${x}px, ${y}px)`;
     d.addEventListener('click', ()=> onIconClick(it.target));
     orbit.appendChild(d);
@@ -361,7 +410,11 @@ elRole.addEventListener('change', ()=> {
 });
 [elOfficer, elBranch, elProduct, elRange, elSearch].forEach(e=> e.addEventListener('input', ()=>{ if(isActive) refreshAll(); }));
 
-/* ======================= CHARTS & TABLE ======================= */
+/* ======================= KPI + CHARTS + TABLE ======================= */
+const kpiTotal = document.getElementById('kpiTotal');
+const kpiRate  = document.getElementById('kpiRate');
+const kpiAvg   = document.getElementById('kpiAvg');
+
 let chBranchRate, chOfficerAvg, chRisk, chReasonsChannel, chBubble, chProduct;
 
 function filterLoans(){
@@ -378,6 +431,17 @@ function filterLoans(){
                  : elRole.value==="Manager" ? branchOk : true; // HR sees all
     return within && searchOk && prodOk && (elRole.value==="Manager"? true : branchOk) && roleOk;
   });
+}
+
+function updateKPIs(loans){
+  const approved = loans.filter(l=> l.status==="approved");
+  const total = approved.reduce((s,x)=> s+x.amount, 0);
+  const rate = (approved.length / Math.max(loans.length,1));
+  const avg  = approved.length ? (total/approved.length) : 0;
+
+  kpiTotal.textContent = currency(total);
+  kpiRate.textContent  = (rate*100).toFixed(1)+'%';
+  kpiAvg.textContent   = currency(avg);
 }
 
 function makeOrUpdateChart(ctx, type, data, options, instRef){
@@ -449,7 +513,7 @@ function updateCharts(loans){
     chReasonsChannel
   );
 
-  // 5) Amount vs Risk (bubble)
+  // 5) Amount vs Risk (bubble) by product
   const colors=[OCEAN.primary,OCEAN.primaryStrong,OCEAN.accent,'#93c5fd','#1d4ed8'];
   const bubDatasets = PRODUCTS.map((p,i)=>({
     label:p,
@@ -460,7 +524,7 @@ function updateCharts(loans){
     document.getElementById('chartBubble'),
     'bubble',
     { datasets: bubDatasets },
-    { parsing:false, scales:{ x:{min:0,max:1,title:{display:true,text:'Risk'}}, y:{title:{display:true,text:'Amount'}, ticks:{callback:v=>'$'+(v/1000).toFixed(0)} } } },
+    { parsing:false, scales:{ x:{min:0,max:1,title:{display:true,text:'Risk'}}, y:{title:{display:true,text:'Amount'}, ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k'}} } },
     chBubble
   );
 
@@ -480,14 +544,11 @@ function localExplain(l){
   out.push(`This ${l.product.toLowerCase()} application was ${l.status}.`);
   out.push(`Risk band: ${l.riskBand} (score ${l.riskScore}).`);
   if(l.status==="approved"){
-    const factors=[];
-    if(l.creditScore>=700) factors.push("strong credit score");
-    if(l.dti<=0.35) factors.push("low DTI");
-    if(l.product!=="Personal" && l.ltv<=0.8) factors.push("healthy LTV");
-    out.push("Key factors: "+(factors.length? factors.join(", "): "policy alignment")+".");
+    const f=[]; if(l.creditScore>=700) f.push("strong credit score"); if(l.dti<=0.35) f.push("low DTI"); if(l.product!=="Personal" && l.ltv<=0.8) f.push("healthy LTV");
+    out.push("Key factors: "+(f.length? f.join(", "): "policy alignment")+".");
   } else {
-    const dr=[]; if(l.dti>0.45) dr.push("high DTI"); if(l.ltv>0.9) dr.push("high LTV"); if(l.creditScore<620) dr.push("low credit score");
-    out.push("Drivers: "+(dr.length? dr.join(", "): "policy criteria")+".");
+    const d=[]; if(l.dti>0.45) d.push("high DTI"); if(l.ltv>0.9) d.push("high LTV"); if(l.creditScore<620) d.push("low credit score");
+    out.push("Drivers: "+(d.length? d.join(", "): "policy criteria")+".");
   }
   out.push(`Channel: ${l.channel}. Officer: ${l.officer}.`);
   return out.join(" ");
@@ -522,7 +583,7 @@ function updateTable(loans){
   });
 }
 
-/* ======================= ACTIVATE ON FIRST CLICK ======================= */
+/* ======================= ACTIVATE ON FIRST ICON CLICK ======================= */
 function activateDashboard(){
   if(isActive) return;
   isActive = true;
@@ -530,7 +591,6 @@ function activateDashboard(){
     const el = document.getElementById(id);
     el.classList.remove('dimmed'); el.classList.add('active');
   });
-  // IMPORTANT: KPIs remain as "—" (numbers hidden). We only load charts/table.
   refreshAll();
   const halo = document.getElementById('halo');
   halo.animate([{transform:'scale(1)'},{transform:'scale(1.02)'},{transform:'scale(1)'}],{duration:420,easing:'ease-out'});
@@ -552,12 +612,12 @@ document.getElementById('exportBtn').addEventListener('click', ()=> isActive && 
 /* ======================= RENDER LOOP ======================= */
 function refreshAll(){
   const loans = filterLoans();
-  updateCharts(loans);   // keep charts alive
-  updateTable(loans);    // keep table alive
+  updateKPIs(loans);     // numbers visible again
+  updateCharts(loans);
+  updateTable(loans);
 }
 
-/* Start with panels dimmed; when the user clicks a halo icon, dashboard activates.
-   KPI numbers remain "—" by design (numbers removed, bar kept). */
+/* Start dimmed; when a halo icon is clicked, the dashboard activates. */
 </script>
 
 </body>
