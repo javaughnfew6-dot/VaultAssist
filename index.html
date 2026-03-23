@@ -1,162 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Azoul – Bank Halo</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    background: radial-gradient(circle at top, #0ea5e9 0%, #061a2e 40%, #041423 100%);
-    font-family: "Segoe UI", Arial, sans-serif;
-    color: white;
-    overflow: hidden;
-  }
-
-  .center {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-  }
-
-  .halo {
-    position: relative;
-    width: 360px;
-    height: 360px;
-  }
-
-  .ring {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 1px dashed rgba(255,255,255,0.25);
-    box-shadow: 0 0 120px rgba(56,189,248,0.4);
-  }
-
-  .core {
-    position: absolute;
-    inset: 50%;
-    width: 130px;
-    height: 130px;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,255,255,0.35), rgba(255,255,255,0.08));
-    display: grid;
-    place-items: center;
-    box-shadow: 0 0 40px rgba(56,189,248,0.8);
-  }
-
-  .bank {
-    text-align: center;
-  }
-
-  .bank svg {
-    width: 64px;
-    height: 64px;
-    stroke: white;
-  }
-
-  .bank h1 {
-    margin: 8px 0 0;
-    font-size: 26px;
-    letter-spacing: 2px;
-  }
-
-  .orbit {
-    position: absolute;
-    inset: 0;
-  }
-
-  .icon {
-    position: absolute;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.12);
-    display: grid;
-    place-items: center;
-    box-shadow: 0 0 16px rgba(56,189,248,0.8);
-  }
-
-  .icon svg {
-    width: 22px;
-    height: 22px;
-    stroke: white;
-  }
-
-  /* Position icons around circle */
-  .i1 { top: -8px; left: 50%; transform: translateX(-50%); }
-  .i2 { top: 18%; right: -6px; }
-  .i3 { top: 50%; right: -12px; transform: translateY(-50%); }
-  .i4 { bottom: 18%; right: -6px; }
-  .i5 { bottom: -8px; left: 50%; transform: translateX(-50%); }
-  .i6 { bottom: 18%; left: -6px; }
-  .i7 { top: 50%; left: -12px; transform: translateY(-50%); }
-</style>
-</head>
-
-<body>
-
-<div class="center">
-  <div class="halo">
-
-    <div class="ring"></div>
-
-    <div class="core">
-      <div class="bank">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6">
-          <path d="M3 10h18"/>
-          <path d="M5 10v10"/>
-          <path d="M9 10v10"/>
-          <path d="M13 10v10"/>
-          <path d="M17 10v10"/>
-          <path d="M3 20h18"/>
-          <path d="M12 4 3 8h18l-9-4z"/>
-        </svg>
-        <h1>BANK</h1>
-      </div>
-    </div>
-
-    <div class="orbit">
-      <div class="icon i1">🌐</div>
-      <div class="icon i2">📊</div>
-      <div class="icon i3">🤝</div>
-      <div class="icon i4">📶</div>
-      <div class="icon i5">🔒</div>
-      <div class="icon i6">💳</div>
-      <div class="icon i7">📡</div>
-    </div>
-
-  </div>
-</div>
-
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Azoul — VaultAssist (Ocean Halo + Analytics)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- Chart.js CDN (for charts) -->
+<meta charset="utf-8" />
+<title>Azoul — VaultAssist (Single Halo, Click‑to‑Activate)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Chart.js via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <style>
   :root{
-    --bg-start:#061a2e;      /* deep ocean */
-    --bg-end:#0b3c6e;        /* mid ocean  */
+    --bg-start:#0a2742;      /* ocean deep */
+    --bg-end:#0b3f73;        /* ocean mid */
     --white:#ffffff;
     --ink:#0b1b3b;
+    --sky300:#7dd3fc;
     --sky400:#38bdf8;
     --sky500:#0ea5e9;
     --cyan300:#22d3ee;
     --good:#10b981;
     --warn:#f59e0b;
-    --bad:#ef4444;
+    --bad: #ef4444;
     --grid:#e5e7eb;
   }
   *{box-sizing:border-box}
@@ -166,104 +29,112 @@
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     color: var(--white);
     background:
-      radial-gradient(1200px 600px at 70% -10%, rgba(56,189,248,.15), transparent),
+      radial-gradient(1100px 520px at 70% -10%, rgba(56,189,248,.15), transparent),
       linear-gradient(135deg, var(--bg-start), var(--bg-end));
   }
-  .container{max-width:1160px;margin:0 auto;padding:16px}
+  .container{max-width:1180px;margin:0 auto;padding:16px}
   .section{margin-top:16px}
   .flex{display:flex;gap:12px;flex-wrap:wrap}
   .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
   .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   @media (max-width:980px){.grid-3,.grid-2{grid-template-columns:1fr}}
   .card{
-    background:#fff;
-    color:var(--ink);
-    border-radius:14px;
-    box-shadow:0 10px 30px rgba(0,0,0,.15);
+    background:#fff;color:var(--ink);
+    border-radius:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.18);
     overflow:hidden;
   }
-  .card .h{padding:10px 14px;border-bottom:1px solid #e6eef8;font-weight:600;color:#0b3c6e}
-  .card .b{padding:12px 14px}
-  .kpi{padding:12px 14px;border-radius:14px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.15)}
-  .kpi .lbl{font-size:12px;color:#0b3c6e;opacity:.8}
-  .kpi .val{font-size:28px;font-weight:700;color:#0b3c6e}
+  .card .h{padding:12px 16px;border-bottom:1px solid #e6eef8;font-weight:700;color:#07345d}
+  .card .b{padding:14px 16px}
+  .kpi{
+    background:#fff;color:var(--ink);
+    border-radius:16px;padding:14px 16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.18);
+  }
+  .kpi .lbl{font-size:12px;color:#07345d;opacity:.85}
+  .kpi .val{font-size:30px;font-weight:800;color:#07345d}
 
-  /* Controls */
-  label{font-size:12px;opacity:.85}
+  /* Inputs */
+  label{font-size:12px;opacity:.9}
   select,input{
-    appearance:none;
-    border:1px solid #cfe5fb;
-    background:#fff;
-    color:#0b3c6e;
-    border-radius:10px;
-    padding:8px 10px;
-    width:100%;
+    appearance:none; border:1px solid #cfe5fb; background:#fff; color:#07345d;
+    border-radius:12px; padding:10px 12px; width:100%;
   }
   .btn{
-    background:#fff;color:#0b3c6e;border:0;border-radius:10px;padding:9px 12px;
-    box-shadow:0 6px 18px rgba(0,0,0,.12);cursor:pointer
+    background:#fff;color:#07345d;border:1px solid #cfe5fb;border-radius:12px;padding:10px 14px;
+    box-shadow:0 6px 18px rgba(0,0,0,.10);cursor:pointer
   }
   .btn:hover{background:#f9fdff}
-  .btn.primary{background:#fff;color:#0b3c6e}
-  .btn.small{padding:6px 10px;border:1px solid #cfe5fb}
+  .btn.small{padding:6px 10px}
 
-  /* Halo Hero */
-  .hero{position:relative;min-height:360px;overflow:hidden;display:grid;place-items:center;margin-top:10px}
+  /* HERO (single halo) */
+  .hero{
+    position:relative;min-height:380px;overflow:hidden;display:grid;place-items:center;margin-top:8px;
+    background:linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.07));
+    border:1px solid rgba(255,255,255,.15); border-radius:16px;
+  }
   .halo{
-    position:relative;width:360px;height:360px;
-    filter: drop-shadow(0 0 40px rgba(56,189,248,.5));
+    position:relative;width:380px;height:380px;filter:drop-shadow(0 0 40px rgba(56,189,248,.5));
   }
-  .ring{position:absolute;inset:0;border-radius:9999px;border:1px dashed rgba(255,255,255,.22)}
+  .ring{
+    position:absolute;inset:0;border-radius:50%;
+    border:1px dashed rgba(255,255,255,.28);
+  }
   .orb{
-    position:absolute;left:50%;top:50%;width:130px;height:130px;transform:translate(-50%,-50%);
-    border-radius:9999px;display:grid;place-items:center;
-    background:radial-gradient(circle, rgba(255,255,255,.28), rgba(255,255,255,.07));
-    box-shadow:0 0 28px rgba(56,189,248,.7), inset 0 0 12px rgba(34,211,238,.6);
-    border:1px solid rgba(255,255,255,.35)
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:150px;height:150px;border-radius:50%;
+    display:grid;place-items:center;
+    background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.28), rgba(255,255,255,.07));
+    border:1px solid rgba(255,255,255,.35);
+    box-shadow:0 0 30px rgba(56,189,248,.7), inset 0 0 14px rgba(34,211,238,.6);
   }
-  .bank-title{margin-top:6px;text-align:center;text-shadow:0 0 16px rgba(56,189,248,.55)}
+  .bank-title{margin-top:6px;text-align:center;text-shadow:0 0 14px rgba(56,189,248,.55)}
   .bank-title h1{margin:0;font-size:28px;letter-spacing:2px}
   .bank-sub{font-size:12px;opacity:.85;margin-top:2px}
 
   .orbit{position:absolute;left:50%;top:50%}
   .ico{
-    position:absolute;width:46px;height:46px;border-radius:9999px;
-    background:rgba(255,255,255,.1);display:grid;place-items:center;
-    border:1px solid rgba(255,255,255,.25);box-shadow:0 0 16px rgba(56,189,248,.6);
-    font-size:20px;
+    position:absolute;width:50px;height:50px;border-radius:9999px;
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);
+    box-shadow:0 0 16px rgba(56,189,248,.55);
+    display:grid;place-items:center;font-size:22px;cursor:pointer;
+    transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
+    user-select:none;
   }
+  .ico:hover{background:rgba(255,255,255,.18);transform:scale(1.05)}
+  .ico:active{transform:scale(0.98)}
+
+  /* Dim dashboard until activation */
+  .dimmed{opacity:.25;filter:grayscale(.1);pointer-events:none;transition:opacity .25s ease, filter .25s ease}
+  .active{opacity:1;filter:none;pointer-events:auto}
 
   /* Table */
   table{width:100%;border-collapse:collapse}
   thead{background:#f1f7ff;color:#0b1b3b}
-  th, td{padding:8px 10px;font-size:13px}
+  th, td{padding:9px 10px;font-size:13px}
   tbody tr{border-bottom:1px solid #eef4ff}
   .risk-low{color:#0f766e}.risk-med{color:#b45309}.risk-high{color:#b91c1c}
   .explain{background:#f7fbff;color:#0b1b3b}
 
-  /* Image strip (optional) */
-  .strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
-  .strip img{width:100%;height:120px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.25)}
+  /* Optional image strip (you can delete) */
+  .strip{position:absolute;left:16px;right:16px;bottom:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .strip img{width:100%;height:110px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.22)}
+  @media (max-width:800px){.strip{display:none}}
 </style>
 </head>
 <body>
 
 <div class="container">
 
-  <!-- HERO (halo + bank glyph) -->
-  <section class="hero card" style="background:linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.06)); color:white; border:1px solid rgba(255,255,255,.15);">
+  <!-- SINGLE HALO -->
+  <section class="hero">
     <div class="halo" id="halo">
       <div class="ring"></div>
+
       <div class="orb">
         <!-- bank glyph -->
-        <svg viewBox="0 0 24 24" width="70" height="70" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-label="Bank">
-          <path d="M3 10h18"/>
-          <path d="M5 10v10"/>
-          <path d="M9 10v10"/>
-          <path d="M13 10v10"/>
-          <path d="M17 10v10"/>
-          <path d="M3 20h18"/>
-          <path d="M12 4 3 8h18l-9-4z"/>
+        <svg viewBox="0 0 24 24" width="76" height="76" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-label="Bank">
+          <path d="M3 10h18"/><path d="M5 10v10"/><path d="M9 10v10"/><path d="M13 10v10"/><path d="M17 10v10"/><path d="M3 20h18"/><path d="M12 4 3 8h18l-9-4z"/>
         </svg>
         <div class="bank-title">
           <h1>BANK</h1>
@@ -271,29 +142,25 @@
         </div>
       </div>
 
-      <!-- Orbiting icons (emoji for lightweight render) -->
-      <!-- positions computed by JS for perfect circle; fallback CSS positions if JS fails -->
-      <div class="orbit" id="orbit">
-        <!-- JS will inject 7 .ico elements around the circle -->
-      </div>
+      <div class="orbit" id="orbit"><!-- icons injected by JS --></div>
     </div>
 
-    <!-- Optional screenshots strip (place images next to this HTML and keep these names) -->
-    <div class="strip" style="position:absolute; left:14px; right:14px; bottom:14px;">
-      <img src="sample-1.jpg" alt="sample-1" onerror="this.style.display='none'">
-      <img src="sample-2.jpg" alt="sample-2" onerror="this.style.display='none'">
-      <img src="sample-3.jpg" alt="sample-3" onerror="this.style.display='none'">
+    <!-- Optional preview strip (delete if you don’t need) -->
+    <div class="strip">
+      <img src="sample-1.jpg" alt="preview 1">
+      <img src="sample-2.jpg" alt="preview 2">
+      <img src="sample-3.jpg" alt="preview 3">
     </div>
   </section>
 
   <!-- CONTROLS -->
-  <section class="section card" style="background:rgba(255,255,255,.98)">
+  <section class="section card dimmed" id="panelControls">
     <div class="b">
       <div class="flex">
         <div style="min-width:160px;flex:1">
           <label>Role</label>
           <select id="role">
-            <option>Manager</option>
+            <option selected>Manager</option>
             <option>Officer</option>
             <option>HR</option>
           </select>
@@ -323,21 +190,21 @@
           <input id="search" placeholder="Find loans, officers, reasons…">
         </div>
         <div style="align-self:end">
-          <button class="btn primary" id="exportBtn">Export CSV</button>
+          <button class="btn" id="exportBtn">Export CSV</button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- KPIs -->
-  <section class="section grid-3">
-    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">$0</div></div>
-    <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">0%</div></div>
-    <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">$0</div></div>
+  <!-- KPIs (start blank) -->
+  <section class="section grid-3 dimmed" id="panelKpis">
+    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">—</div></div>
+    <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">—</div></div>
+    <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">—</div></div>
   </section>
 
   <!-- CHARTS row 1 -->
-  <section class="section grid-3">
+  <section class="section grid-3 dimmed" id="panelChartsRow1">
     <div class="card">
       <div class="h">Approval Rate by Branch</div>
       <div class="b"><canvas id="chartBranchRate" height="220"></canvas></div>
@@ -353,7 +220,7 @@
   </section>
 
   <!-- CHARTS row 2 -->
-  <section class="section grid-2">
+  <section class="section grid-2 dimmed" id="panelChartsRow2">
     <div class="card">
       <div class="h">Why Loans Were Made by Channel</div>
       <div class="b"><canvas id="chartReasonsChannel" height="280"></canvas></div>
@@ -365,7 +232,7 @@
   </section>
 
   <!-- TABLE -->
-  <section class="section card">
+  <section class="section card dimmed" id="panelTable">
     <div class="h">Recent Loans & Reasons</div>
     <div class="b" style="overflow:auto">
       <table id="loansTable">
@@ -380,12 +247,12 @@
     </div>
   </section>
 
-  <div style="text-align:center;opacity:.8;margin:18px 0 26px">Azoul • VaultAssist • <i>Quasinss</i></div>
+  <div style="text-align:center;opacity:.85;margin:18px 0 26px">Azoul • VaultAssist • <i>Quasinss</i></div>
 
 </div>
 
 <script>
-/* ----------------------- Theme helpers ----------------------- */
+/* ======================= THEME HELPERS ======================= */
 const OCEAN = {
   primary: getComputedStyle(document.documentElement).getPropertyValue('--sky400').trim(),
   primaryStrong: getComputedStyle(document.documentElement).getPropertyValue('--sky500').trim(),
@@ -395,7 +262,7 @@ const OCEAN = {
   bad:  getComputedStyle(document.documentElement).getPropertyValue('--bad').trim()
 };
 
-/* ----------------------- Mock data + risk ----------------------- */
+/* ======================= DATA + RISK ======================= */
 const BRANCHES = ["Downtown","Midtown","Uptown","Riverside"];
 const PRODUCTS = ["Mortgage","Auto","Personal","SMB","Student"];
 const REASONS  = ["Home purchase","Debt consolidation","Vehicle purchase","Working capital","Education","Emergency expenses","Refinance"];
@@ -418,7 +285,7 @@ const LOANS = (()=> {
   for(let i=0;i<520;i++){
     const d=new Date(now); d.setDate(d.getDate()-Math.floor(Math.random()*180));
     const product=pick(PRODUCTS), branch=pick(BRANCHES), officer=pick(OFFICERS), channel=pick(CHANNELS), reasonCategory=pick(REASONS);
-    const creditScore=Math.round(rng(560,810)); const dti=+(rng(0.1,0.55).toFixed(2));
+    const creditScore=Math.round(rng(560,810)), dti=+(rng(0.1,0.55).toFixed(2));
     const ltv = product==="Mortgage" ? +(rng(0.5,0.97).toFixed(2)) : +(rng(0.2,0.9).toFixed(2));
     const rscore=riskScore(dti,ltv,creditScore); const rband=riskBand(rscore);
     const base = product==="Mortgage"? rng(120000,650000) : product==="Auto"? rng(8000,65000) : product==="SMB"? rng(20000,250000) : rng(3000,55000);
@@ -435,41 +302,54 @@ const LOANS = (()=> {
   return out.sort((a,b)=> a.date.localeCompare(b.date) );
 })();
 
-/* ----------------------- Orbit icons around hero ----------------------- */
+/* ======================= HALO ICONS (CLICKABLE) ======================= */
+const ICONS = [
+  { emoji:"📊", label:"Analytics", action: activateDashboard },
+  { emoji:"🔒", label:"Security",  action: activateDashboard },
+  { emoji:"💳", label:"Payments",  action: activateDashboard },
+  { emoji:"📶", label:"Digital",   action: activateDashboard },
+  { emoji:"🤝", label:"Partners",  action: activateDashboard },
+  { emoji:"🌐", label:"Global",    action: activateDashboard },
+  { emoji:"📡", label:"Signals",   action: activateDashboard },
+];
+
 (function placeOrbitIcons(){
   const orbit = document.getElementById('orbit');
-  const icons = ["🌐","📊","🤝","📶","🔒","💳","📡"];
-  const r = 160;
-  icons.forEach((txt,i)=>{
-    const a = (i/icons.length)*Math.PI*2;
-    const x = Math.cos(a)*r, y=Math.sin(a)*r;
-    const d=document.createElement('div'); d.className='ico'; d.textContent=txt;
+  const r = 165;                          // single halo radius
+  ICONS.forEach((it,i)=>{
+    const a = (i/ICONS.length)*Math.PI*2; // evenly spaced
+    const x = Math.cos(a)*r, y = Math.sin(a)*r;
+    const d = document.createElement('div');
+    d.className='ico';
+    d.title = it.label;
+    d.textContent = it.emoji;
     d.style.transform = `translate(${x}px, ${y}px)`;
+    d.addEventListener('click', ()=> it.action(it.label));
     orbit.appendChild(d);
   });
 })();
 
-/* ----------------------- Filters ----------------------- */
-const elRole = document.getElementById('role');
-const elOfficerBox = document.getElementById('officerBox');
-const elOfficer = document.getElementById('officer');
-const elBranch = document.getElementById('branch');
-const elProduct= document.getElementById('product');
-const elRange  = document.getElementById('range');
-const elSearch = document.getElementById('search');
-const elExport = document.getElementById('exportBtn');
+/* ======================= UI HOOKS & FILTERS ======================= */
+const elRole     = document.getElementById('role');
+const elOfficerB = document.getElementById('officerBox');
+const elOfficer  = document.getElementById('officer');
+const elBranch   = document.getElementById('branch');
+const elProduct  = document.getElementById('product');
+const elRange    = document.getElementById('range');
+const elSearch   = document.getElementById('search');
+const elExport   = document.getElementById('exportBtn');
 
-OFFICERS.forEach(o=> { const op=new Option(o,o); elOfficer.add(op); });
+OFFICERS.forEach(o=> elOfficer.add(new Option(o,o)));
 ["All branches",...BRANCHES].forEach(b=> elBranch.add(new Option(b,b)));
 ["All products",...PRODUCTS].forEach(p=> elProduct.add(new Option(p,p)));
 
 elRole.addEventListener('change', ()=> {
-  elOfficerBox.hidden = elRole.value !== 'Officer';
-  refreshAll();
+  elOfficerB.hidden = elRole.value !== 'Officer';
+  if (isActive) refreshAll();
 });
-[elOfficer, elBranch, elProduct, elRange, elSearch].forEach(e=> e.addEventListener('input', refreshAll));
+[elOfficer, elBranch, elProduct, elRange, elSearch].forEach(e=> e.addEventListener('input', ()=>{ if(isActive) refreshAll(); }));
 
-/* ----------------------- KPIs & Charts & Table ----------------------- */
+/* ======================= KPI & CHARTS & TABLE ======================= */
 const kpiTotal = document.getElementById('kpiTotal');
 const kpiRate  = document.getElementById('kpiRate');
 const kpiAvg   = document.getElementById('kpiAvg');
@@ -488,7 +368,8 @@ function filterLoans(){
     const branchOk = (elBranch.value==="All branches" || l.branch===elBranch.value);
     const roleOk = elRole.value==="Officer" ? l.officer===elOfficer.value
                  : elRole.value==="Manager" ? branchOk : true; // HR sees all
-    return within && searchOk && prodOk && (elRole.value==="Manager"? true: branchOk) && roleOk;
+    // For Manager, keep branch filter but roleOk already requires branchOk; to avoid double‑filtering, allow branchOk via roleOk.
+    return within && searchOk && prodOk && (elRole.value==="Manager"? true : branchOk) && roleOk;
   });
 }
 
@@ -497,6 +378,8 @@ function updateKPIs(loans){
   const total = approved.reduce((s,x)=> s+x.amount, 0);
   const rate = (approved.length / Math.max(loans.length,1));
   const avg  = approved.length ? (total/approved.length) : 0;
+
+  // Fill KPIs
   kpiTotal.textContent = currency(total);
   kpiRate.textContent  = (rate*100).toFixed(1)+'%';
   kpiAvg.textContent   = currency(avg);
@@ -598,10 +481,7 @@ function localExplain(l){
     if(l.product!=="Personal" && l.ltv<=0.8) factors.push("healthy LTV");
     out.push("Key factors: "+(factors.length? factors.join(", "): "policy alignment")+".");
   } else {
-    const dr=[];
-    if(l.dti>0.45) dr.push("high DTI");
-    if(l.ltv>0.9) dr.push("high LTV");
-    if(l.creditScore<620) dr.push("low credit score");
+    const dr=[]; if(l.dti>0.45) dr.push("high DTI"); if(l.ltv>0.9) dr.push("high LTV"); if(l.creditScore<620) dr.push("low credit score");
     out.push("Drivers: "+(dr.length? dr.join(", "): "policy criteria")+".");
   }
   out.push(`Channel: ${l.channel}. Officer: ${l.officer}.`);
@@ -615,7 +495,7 @@ function updateTable(loans){
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${l.date}</td>
-      <td style="color:#0b3c6e;font-weight:600">${l.id}</td>
+      <td style="color:#07345d;font-weight:700">${l.id}</td>
       <td>${l.branch}</td>
       <td>${l.product}</td>
       <td style="text-align:right">${currency(l.amount)}</td>
@@ -626,26 +506,38 @@ function updateTable(loans){
       <td>${l.channel}</td>
       <td><button class="btn small">Explain</button></td>
     `;
-    const btn = tr.querySelector('button');
-    btn.addEventListener('click', ()=>{
-      const exp = document.createElement('tr');
-      exp.className='explain';
-      const td = document.createElement('td');
-      td.colSpan=11;
-      td.style.padding='10px 12px';
-      td.textContent = localExplain(l);
-      exp.appendChild(td);
-      // toggle
-      if (tr.nextSibling && tr.nextSibling.classList.contains('explain')) {
-        tr.parentNode.removeChild(tr.nextSibling);
-      } else {
-        tr.parentNode.insertBefore(exp, tr.nextSibling);
-      }
+    tr.querySelector('button').addEventListener('click', ()=>{
+      const next = tr.nextSibling;
+      if(next && next.classList && next.classList.contains('explain')) { next.remove(); return; }
+      const exp = document.createElement('tr'); exp.className='explain';
+      const td  = document.createElement('td'); td.colSpan=11; td.style.padding='10px 12px'; td.textContent = localExplain(l);
+      exp.appendChild(td); tr.parentNode.insertBefore(exp, tr.nextSibling);
     });
     tbody.appendChild(tr);
   });
 }
 
+/* ======================= ACTIVATE ON CLICK ======================= */
+let isActive = false;
+function activateDashboard(sourceLabel=""){
+  if(isActive) return;
+  isActive = true;
+
+  // “Light up” the dashboard
+  ['panelControls','panelKpis','panelChartsRow1','panelChartsRow2','panelTable'].forEach(id=>{
+    const el = document.getElementById(id);
+    el.classList.remove('dimmed'); el.classList.add('active');
+  });
+
+  // Populate KPIs + charts + table
+  refreshAll();
+
+  // Optional: subtle pulse to acknowledge the click
+  const halo = document.getElementById('halo');
+  halo.animate([{transform:'scale(1)'},{transform:'scale(1.02)'},{transform:'scale(1)'}],{duration:420,easing:'ease-out'});
+}
+
+/* ======================= EXPORT ======================= */
 function exportCSV(loans){
   if(!loans.length){ alert('No rows to export for current filters.'); return; }
   const headers = Object.keys(loans[0]);
@@ -656,18 +548,19 @@ function exportCSV(loans){
   const a = document.createElement('a'); a.href=url; a.download='azoul_vaultassist_loans.csv'; a.click();
   URL.revokeObjectURL(url);
 }
+document.getElementById('exportBtn').addEventListener('click', ()=> isActive && exportCSV(filterLoans()) );
 
-/* ----------------------- Render loop ----------------------- */
+/* ======================= RENDER LOOP ======================= */
 function refreshAll(){
   const loans = filterLoans();
   updateKPIs(loans);
   updateCharts(loans);
   updateTable(loans);
 }
-document.getElementById('exportBtn').addEventListener('click', ()=> exportCSV(filterLoans()));
 
-/* initial render */
-refreshAll();
+/* NOTE: We do not render data until the user clicks a halo icon.
+   KPIs remain “—” and panels stay dimmed. */
 </script>
+
 </body>
 </html>
