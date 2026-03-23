@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Azoul — VaultAssist (Halo • User Info • KPIs)</title>
+<title>Azoul — VaultAssist (Blank Ball → User Info • Total Loaned empty)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+
 <!-- Chart.js via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
@@ -44,19 +45,23 @@
     background:#fff;color:var(--ink);
     border-radius:16px; box-shadow:var(--cardShadow);
     overflow:hidden;
-    scroll-margin-top: 84px; /* when scrolled-to from halo */
+    scroll-margin-top: 84px; /* offset when scrolled to */
   }
   .card .h{padding:12px 16px;border-bottom:1px solid #e6eef8;font-weight:700;color:#07345d}
   .card .b{padding:14px 16px}
 
-  /* HERO (single halo) */
+  /* HERO — single blank ball */
   .hero{
     position:relative;min-height:390px;overflow:hidden;display:grid;place-items:center;margin-top:8px;
     background:linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.07));
     border:1px solid rgba(255,255,255,.15); border-radius:16px;
+    cursor:pointer;
   }
   .halo{position:relative;width:390px;height:390px;filter:drop-shadow(0 0 40px rgba(56,189,248,.5));}
-  .ring{position:absolute;inset:0;border-radius:50%;border:1px dashed rgba(255,255,255,.28);box-shadow: 0 0 120px rgba(56,189,248,.35);}
+  .ring{
+    position:absolute;inset:0;border-radius:50%;border:1px dashed rgba(255,255,255,.28);
+    box-shadow: 0 0 120px rgba(56,189,248,.35);
+  }
   .orb{
     position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
     width:150px;height:150px;border-radius:50%;
@@ -65,26 +70,14 @@
     border:1px solid rgba(255,255,255,.35);
     box-shadow:0 0 30px rgba(56,189,248,.7), inset 0 0 14px rgba(34,211,238,.6);
   }
-  .bank-title{margin-top:6px;text-align:center;text-shadow:0 0 14px rgba(56,189,248,.55)}
-  .bank-title h1{margin:0;font-size:28px;letter-spacing:2px}
-  .bank-sub{font-size:12px;opacity:.85;margin-top:2px}
-
-  .orbit{position:absolute;left:50%;top:50%}
-  .ico{
-    position:absolute;width:50px;height:50px;border-radius:9999px;
-    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);
-    box-shadow:0 0 16px rgba(56,189,248,.55);
-    display:grid;place-items:center;font-size:22px;cursor:pointer;
-    transition:transform .2s ease, box-shadow .2s ease, background .2s ease; user-select:none;
-  }
-  .ico:hover{background:rgba(255,255,255,.18);transform:scale(1.05)}
-  .ico:active{transform:scale(0.98)}
+  .tap{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:13px;color:#dff3ff;opacity:.9}
 
   /* Panels */
   .dimmed{opacity:.25;filter:grayscale(.1);pointer-events:none;transition:opacity .25s ease, filter .25s ease}
   .active{opacity:1;filter:none;pointer-events:auto}
+  .hidden{display:none !important}
 
-  /* KPI tiles */
+  /* KPI tiles (Total Loaned will stay as em‑dash “—”) */
   .kpi{background:#fff;color:var(--ink);border-radius:16px;padding:14px 16px;box-shadow:var(--cardShadow)}
   .kpi .lbl{font-size:12px;color:#07345d;opacity:.85}
   .kpi .val{font-size:30px;font-weight:800;color:#07345d;letter-spacing:.5px}
@@ -109,66 +102,51 @@
   tbody tr{border-bottom:1px solid #eef4ff}
   .risk-low{color:#0f766e}.risk-med{color:#b45309}.risk-high{color:#b91c1c}
   .explain{background:#f7fbff;color:#0b1b3b}
-
-  /* Section pulse highlight */
-  .pulse{ animation: pulseBorder .9s ease-out 1; box-shadow: 0 0 0 3px rgba(56,189,248,.25); }
-  @keyframes pulseBorder{
-    0% { box-shadow: 0 0 0 3px rgba(56,189,248,.55); }
-    100%{ box-shadow: 0 0 0 0 rgba(56,189,248,0); }
-  }
-
-  .note{font-size:12px; color:#0a3761; opacity:.85}
 </style>
 </head>
 <body>
 
 <div class="container">
 
-  <!-- SINGLE HALO -->
-  <section class="hero">
-    <div class="halo" id="halo">
+  <!-- 1) BLANK BALL (click to open User Info) -->
+  <section class="hero" id="hero">
+    <div class="halo">
       <div class="ring"></div>
-      <div class="orb">
-        <svg viewBox="0 0 24 24" width="76" height="76" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-label="Bank">
-          <path d="M3 10h18"/><path d="M5 10v10"/><path d="M9 10v10"/><path d="M13 10v10"/><path d="M17 10v10"/><path d="M3 20h18"/><path d="M12 4 3 8h18l-9-4z"/>
-        </svg>
-        <div class="bank-title">
-          <h1>BANK</h1>
-          <div class="bank-sub">Azoul • VaultAssist</div>
-        </div>
-      </div>
-      <div class="orbit" id="orbit"><!-- icons injected by JS --></div>
+      <div class="orb" aria-label="Tap to begin"></div>
+      <div class="tap">Tap the ball to begin</div>
     </div>
   </section>
 
-  <!-- USER INFO (Name, Gmail, Phone) -->
-  <section class="section card" id="sec-user">
+  <!-- 2) USER INFO -->
+  <section class="section card hidden" id="sec-user">
     <div class="h">User Info</div>
     <div class="b">
       <form id="userForm" class="flex" autocomplete="on" novalidate>
         <div style="min-width:200px;flex:1">
           <label for="uName">Name</label>
-          <input id="uName" name="name" placeholder="Enter your name" maxlength="60">
+          <input id="uName" name="name" placeholder="Your name" maxlength="60">
         </div>
         <div style="min-width:240px;flex:1.2">
-          <label for="uEmail">Gmail</label>
-          <input id="uEmail" type="email" name="email" placeholder="you@gmail.com" pattern="^[^\\s@]+@gmail\\.com$" title="Please use a Gmail address.">
+          <label for="uEmail">Email</label>
+          <input id="uEmail" type="email" name="email" placeholder="you@email.com" title="Please provide a valid email.">
         </div>
         <div style="min-width:180px;flex:1">
           <label for="uPhone">Phone</label>
-          <input id="uPhone" name="phone" placeholder="(555) 123‑4567" pattern="^[0-9()\\-\\s+]{7,20}$" title="Enter digits and ()-+ only.">
+          <input id="uPhone" name="phone" placeholder="(555) 123‑4567" pattern="^[0-9()\\-\\s+]{7,20}$" title="Digits and ()-+ only.">
         </div>
         <div style="align-self:end;display:flex;gap:8px">
-          <button class="btn" type="submit">Save</button>
+          <button class="btn" type="submit">Save & Continue</button>
           <button class="btn" type="button" id="clearUser">Clear</button>
         </div>
       </form>
-      <div class="note" id="userNote">Saved locally to your browser only. We don’t upload contact info.</div>
+      <div style="font-size:12px;color:#0a3761;opacity:.85" id="userNote">
+        Saved locally to your browser only. We don’t upload contact info.
+      </div>
     </div>
   </section>
 
-  <!-- CONTROLS -->
-  <section class="section card dimmed" id="sec-controls">
+  <!-- 3) CONTROLS (appears after Save) -->
+  <section class="section card dimmed hidden" id="sec-controls">
     <div class="b">
       <div class="flex">
         <div style="min-width:160px;flex:1">
@@ -210,15 +188,15 @@
     </div>
   </section>
 
-  <!-- KPI BAR (numbers visible again) -->
-  <section class="section grid-3 dimmed" id="sec-kpis">
-    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">$0</div></div>
+  <!-- 4) KPI BAR — “Total Loaned” stays blank “—” -->
+  <section class="section grid-3 dimmed hidden" id="sec-kpis">
+    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">—</div></div>
     <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">0%</div></div>
     <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">$0</div></div>
   </section>
 
-  <!-- CHARTS row 1 -->
-  <section class="section grid-3 dimmed" id="sec-charts-row1">
+  <!-- 5) CHARTS -->
+  <section class="section grid-3 dimmed hidden" id="sec-charts-row1">
     <div class="card" id="sec-branch">
       <div class="h">Approval Rate by Branch</div>
       <div class="b"><canvas id="chartBranchRate" height="220"></canvas></div>
@@ -233,8 +211,7 @@
     </div>
   </section>
 
-  <!-- CHARTS row 2 -->
-  <section class="section grid-3 dimmed" id="sec-charts-row2">
+  <section class="section grid-3 dimmed hidden" id="sec-charts-row2">
     <div class="card" id="sec-reasons">
       <div class="h">Why Loans Were Made by Channel</div>
       <div class="b"><canvas id="chartReasonsChannel" height="260"></canvas></div>
@@ -249,8 +226,8 @@
     </div>
   </section>
 
-  <!-- TABLE -->
-  <section class="section card dimmed" id="sec-table">
+  <!-- 6) TABLE -->
+  <section class="section card dimmed hidden" id="sec-table">
     <div class="h">Recent Loans & Reasons</div>
     <div class="b" style="overflow:auto">
       <table id="loansTable">
@@ -263,7 +240,7 @@
         </thead>
         <tbody id="tbodyLoans"></tbody>
       </table>
-      <div class="note" style="margin-top:8px">
+      <div style="font-size:12px;color:#0a3761;opacity:.85;margin-top:8px">
         Officers are anonymized (Officer A–E). No real names are used anywhere.
       </div>
     </div>
@@ -274,7 +251,7 @@
 </div>
 
 <script>
-/* ======================= THEME HELPERS ======================= */
+/* ========= THEME ========= */
 const OCEAN = {
   primary: getComputedStyle(document.documentElement).getPropertyValue('--sky400').trim(),
   primaryStrong: getComputedStyle(document.documentElement).getPropertyValue('--sky500').trim(),
@@ -284,7 +261,16 @@ const OCEAN = {
   bad:  getComputedStyle(document.documentElement).getPropertyValue('--bad').trim()
 };
 
-/* ======================= USER INFO (local only) ======================= */
+/* ========= STEP 1: SHOW USER INFO after tapping the ball ========= */
+const hero = document.getElementById('hero');
+const secUser = document.getElementById('sec-user');
+hero.addEventListener('click', ()=>{
+  secUser.classList.remove('hidden');
+  secUser.scrollIntoView({behavior:'smooth', block:'start'});
+  hero.animate([{transform:'scale(1)'},{transform:'scale(1.02)'},{transform:'scale(1)'}],{duration:420,easing:'ease-out'});
+});
+
+/* ========= STEP 2: SAVE USER INFO locally, then reveal dashboard ========= */
 (function userInfo(){
   const f = document.getElementById('userForm');
   const name = document.getElementById('uName');
@@ -292,21 +278,44 @@ const OCEAN = {
   const phone = document.getElementById('uPhone');
   const clearBtn = document.getElementById('clearUser');
   const note = document.getElementById('userNote');
-  // load if exists
+
+  // Load saved
   try{
     const saved = JSON.parse(localStorage.getItem('azoul_user') || 'null');
     if(saved){ name.value=saved.name||''; email.value=saved.email||''; phone.value=saved.phone||''; }
   }catch{}
+
   f.addEventListener('submit', (e)=>{
     e.preventDefault();
-    // basic validation (gmail only)
-    const emailOk = /^[^\s@]+@gmail\.com$/i.test(email.value || '');
+    // Basic checks
+    const emailOk = !email.value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value);
     const phoneOk = !phone.value || /^[0-9()\-\s+]{7,20}$/.test(phone.value);
-    if(!emailOk){ email.focus(); note.textContent = 'Please provide a valid Gmail address (…@gmail.com).'; return; }
-    if(!phoneOk){ phone.focus(); note.textContent = 'Phone: digits and ()-+ only.'; return; }
-    localStorage.setItem('azoul_user', JSON.stringify({ name:name.value?.trim()||'', email:email.value?.trim()||'', phone:phone.value?.trim()||'' }));
-    note.textContent = 'Saved locally. (Use Clear to remove.)';
+    if(!emailOk){ email.focus(); note.textContent='Enter a valid email.'; return; }
+    if(!phoneOk){ phone.focus(); note.textContent='Phone: digits and ()-+ only.'; return; }
+
+    localStorage.setItem('azoul_user', JSON.stringify({
+      name: name.value?.trim()||'',
+      email: email.value?.trim()||'',
+      phone: phone.value?.trim()||''
+    }));
+
+    // Reveal all dashboard sections (KPIs start with placeholders, but Total Loaned will remain “—”)
+    ['sec-controls','sec-kpis','sec-charts-row1','sec-charts-row2','sec-table']
+      .forEach(id=>{
+        const el=document.getElementById(id);
+        el.classList.remove('hidden');
+        el.classList.remove('dimmed');
+        el.classList.add('active');
+      });
+
+    // Build data views (charts + table) and partially update KPIs (Total Loaned stays “—”)
+    refreshAll();
+
+    // Scroll to controls after save
+    document.getElementById('sec-controls').scrollIntoView({behavior:'smooth', block:'start'});
+    note.textContent='Saved locally. (Use Clear to remove.)';
   });
+
   clearBtn.addEventListener('click', ()=>{
     localStorage.removeItem('azoul_user');
     name.value=''; email.value=''; phone.value='';
@@ -314,13 +323,12 @@ const OCEAN = {
   });
 })();
 
-/* ======================= DATA + RISK ======================= */
+/* ========= DATA (with anonymized officers) ========= */
 const BRANCHES = ["Downtown","Midtown","Uptown","Riverside"];
 const PRODUCTS = ["Mortgage","Auto","Personal","SMB","Student"];
 const REASONS  = ["Home purchase","Debt consolidation","Vehicle purchase","Working capital","Education","Emergency expenses","Refinance"];
 const CHANNELS = ["In-Branch","Online","Broker"];
-/* anonymized officers only */
-const OFFICERS = ["Officer A","Officer B","Officer C","Officer D","Officer E"];
+const OFFICERS = ["Officer A","Officer B","Officer C","Officer D","Officer E"]; // anonymized
 
 function rng(min,max){return Math.random()*(max-min)+min}
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
@@ -355,42 +363,7 @@ const LOANS = (()=> {
   return out.sort((a,b)=> a.date.localeCompare(b.date) );
 })();
 
-/* ======================= HALO ICONS (CLICK → SCROLL) ======================= */
-let isActive = false;
-
-const ICONS = [
-  { emoji:"📊", label:"Analytics", target:"#sec-kpis" },   // KPIs first
-  { emoji:"🌐", label:"Global",    target:"#sec-branch" },
-  { emoji:"💳", label:"Payments",  target:"#sec-product" },
-  { emoji:"📶", label:"Digital",   target:"#sec-reasons" },
-  { emoji:"🤝", label:"Partners",  target:"#sec-table" },
-  { emoji:"📡", label:"Signals",   target:"#sec-bubble" },
-  { emoji:"🔒", label:"Security",  target:"#sec-risk" },
-];
-
-(function placeOrbitIcons(){
-  const orbit = document.getElementById('orbit');
-  const r = 170;
-  ICONS.forEach((it,i)=>{
-    const a = (i/ICONS.length)*Math.PI*2;
-    const x = Math.cos(a)*r, y = Math.sin(a)*r;
-    const d = document.createElement('div');
-    d.className='ico'; d.title = it.label; d.textContent = it.emoji;
-    d.style.transform = `translate(${x}px, ${y}px)`;
-    d.addEventListener('click', ()=> onIconClick(it.target));
-    orbit.appendChild(d);
-  });
-})();
-
-function onIconClick(targetSelector){
-  if(!isActive){ activateDashboard(); }
-  const el = document.querySelector(targetSelector);
-  if(!el) return;
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
-}
-
-/* ======================= FILTERS ======================= */
+/* ========= FILTERS ========= */
 const elRole     = document.getElementById('role');
 const elOfficerB = document.getElementById('officerBox');
 const elOfficer  = document.getElementById('officer');
@@ -406,14 +379,29 @@ OFFICERS.forEach(o=> elOfficer.add(new Option(o,o)));
 
 elRole.addEventListener('change', ()=> {
   elOfficerB.hidden = elRole.value !== 'Officer';
-  if (isActive) refreshAll();
+  refreshAll();
 });
-[elOfficer, elBranch, elProduct, elRange, elSearch].forEach(e=> e.addEventListener('input', ()=>{ if(isActive) refreshAll(); }));
+[elOfficer, elBranch, elProduct, elRange, elSearch].forEach(e=> e.addEventListener('input', refreshAll));
 
-/* ======================= KPI + CHARTS + TABLE ======================= */
+/* ========= KPI (Total Loaned blank) + CHARTS + TABLE ========= */
 const kpiTotal = document.getElementById('kpiTotal');
 const kpiRate  = document.getElementById('kpiRate');
 const kpiAvg   = document.getElementById('kpiAvg');
+
+/* Keep "Total Loaned" empty (—); update the other two KPIs */
+function updateKPIsPartial(loans){
+  // Keep this empty on purpose
+  kpiTotal.textContent = '—';
+
+  // Compute rate & avg as usual
+  const approved = loans.filter(l => l.status === "approved");
+  const total    = approved.reduce((s,x) => s + x.amount, 0);
+  const rate     = approved.length / Math.max(loans.length, 1);
+  const avg      = approved.length ? (total / approved.length) : 0;
+
+  kpiRate.textContent = (rate * 100).toFixed(1) + '%';
+  kpiAvg.textContent  = currency(avg);
+}
 
 let chBranchRate, chOfficerAvg, chRisk, chReasonsChannel, chBubble, chProduct;
 
@@ -431,17 +419,6 @@ function filterLoans(){
                  : elRole.value==="Manager" ? branchOk : true; // HR sees all
     return within && searchOk && prodOk && (elRole.value==="Manager"? true : branchOk) && roleOk;
   });
-}
-
-function updateKPIs(loans){
-  const approved = loans.filter(l=> l.status==="approved");
-  const total = approved.reduce((s,x)=> s+x.amount, 0);
-  const rate = (approved.length / Math.max(loans.length,1));
-  const avg  = approved.length ? (total/approved.length) : 0;
-
-  kpiTotal.textContent = currency(total);
-  kpiRate.textContent  = (rate*100).toFixed(1)+'%';
-  kpiAvg.textContent   = currency(avg);
 }
 
 function makeOrUpdateChart(ctx, type, data, options, instRef){
@@ -513,7 +490,7 @@ function updateCharts(loans){
     chReasonsChannel
   );
 
-  // 5) Amount vs Risk (bubble) by product
+  // 5) Amount vs Risk (bubble)
   const colors=[OCEAN.primary,OCEAN.primaryStrong,OCEAN.accent,'#93c5fd','#1d4ed8'];
   const bubDatasets = PRODUCTS.map((p,i)=>({
     label:p,
@@ -583,20 +560,7 @@ function updateTable(loans){
   });
 }
 
-/* ======================= ACTIVATE ON FIRST ICON CLICK ======================= */
-function activateDashboard(){
-  if(isActive) return;
-  isActive = true;
-  ['sec-controls','sec-kpis','sec-charts-row1','sec-charts-row2','sec-table'].forEach(id=>{
-    const el = document.getElementById(id);
-    el.classList.remove('dimmed'); el.classList.add('active');
-  });
-  refreshAll();
-  const halo = document.getElementById('halo');
-  halo.animate([{transform:'scale(1)'},{transform:'scale(1.02)'},{transform:'scale(1)'}],{duration:420,easing:'ease-out'});
-}
-
-/* ======================= EXPORT ======================= */
+/* ========= EXPORT ========= */
 function exportCSV(loans){
   if(!loans.length){ alert('No rows to export for current filters.'); return; }
   const headers = Object.keys(loans[0]);
@@ -607,17 +571,15 @@ function exportCSV(loans){
   const a = document.createElement('a'); a.href=url; a.download='azoul_vaultassist_loans.csv'; a.click();
   URL.revokeObjectURL(url);
 }
-document.getElementById('exportBtn').addEventListener('click', ()=> isActive && exportCSV(filterLoans()) );
+document.getElementById('exportBtn').addEventListener('click', ()=> exportCSV(filterLoans()) );
 
-/* ======================= RENDER LOOP ======================= */
+/* ========= REFRESH ========= */
 function refreshAll(){
   const loans = filterLoans();
-  updateKPIs(loans);     // numbers visible again
+  updateKPIsPartial(loans);  // <-- Total Loaned stays “—”; other two update
   updateCharts(loans);
   updateTable(loans);
 }
-
-/* Start dimmed; when a halo icon is clicked, the dashboard activates. */
 </script>
 
 </body>
