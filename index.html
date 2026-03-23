@@ -513,3 +513,51 @@ export default function AzoulVaultAssistDashboard(){
    3) Frontend already calls POST /api/explain and falls back to local if not present.
    4) Replace MOCK_LOANS with your DB/API and enforce RBAC on the server too.
    ============================================================= */
+
+import React, { useMemo, useState, useCallback } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  PieChart, Pie, Cell, Tooltip as RTooltip, Legend,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Treemap, ScatterChart, Scatter, ZAxis
+} from "recharts";
+import { Search, Download } from "lucide-react";
+
+/**
+ * Azoul — VaultAssist (Ocean Blue Theme)
+ * -------------------------------------------------
+ * Visual goal: Ocean-blue background, white/glassy cards,
+ * big KPI tiles + donut + treemap + bars + bubble risk.
+ */
+
+const COLORS = {
+  ocean1: "#0b1b3b",       // deep ocean ink
+  ocean2: "#0a3d62",       // dark teal-blue
+  ocean3: "#0e7490",       // cyan-teal
+  oceanGlow: "#38bdf8",    // light cyan accents
+  white: "#ffffff",
+  good: "#10b981",
+  warn: "#f59e0b",
+  bad: "#ef4444",
+};
+
+// ---------- SAMPLE DATA (same shapes as your full app) ----------
+const BRANCHES = ["Downtown", "Midtown", "Uptown", "Riverside"]; 
+const PRODUCTS = ["Mortgage", "Auto", "Personal", "SMB", "Student"]; 
+const REASONS = ["Home purchase","Debt consolidation","Vehicle purchase","Working capital","Education","Emergency expenses","Refinance"]; 
+const CHANNELS = ["In-Branch","Online","Broker"];
+const OFFICERS = ["A. Patel","M. Chen","R. Johnson","S. Davis","K. Garcia"];
+
+function rng(min:number,max:number){return Math.random()*(max-min)+min}
+function pick<T>(a:T[]){return a[Math.floor(Math.random()*a.length)]}
+
+function riskScore(dti:number, ltv:number, cs:number){
+  const ndti = Math.min(1, dti/0.5);
+  const nltv = Math.min(1, ltv/0.95);
+  const ncs  = 1 - Math.min(1, (cs-550)/(820-550));
+  return +(0.4*ndti + 0.35*nltv + 0.25*ncs).toFixed(2);
