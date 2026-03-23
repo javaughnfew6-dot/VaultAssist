@@ -1,587 +1,138 @@
-import React, { useMemo, useState, useCallback } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import {
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ScatterChart,
-  Scatter,
-  ZAxis,
-  Treemap,
-} from "recharts";
-import { Search, Download, Info, Wifi, Globe, Lock, Handshake, Banknote, Signal, BarChart3 } from "lucide-react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Azoul – Bank Halo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-/**
- * ==========================================================
- * Azoul — VaultAssist (Halo Ocean Theme)
- * ----------------------------------------------------------
- * "Ocean blue" full-screen gradient background, white-glow hero with
- * central bank icon and circular halo icons — then your analytics below.
- * Includes roles, risk model, charts, explanations, and CSV export.
- * ==========================================================
- */
-
-/* ---------------------- THEME ---------------------- */
-const OCEAN = {
-  bgStart: "#061a2e", // deeper ocean
-  bgEnd:   "#0b3c6e", // mid ocean
-  card:    "#ffffff",
-  text:    "#0b1b3b",
-  primary: "#38bdf8", // sky-400
-  primaryStrong: "#0ea5e9", // sky-500
-  accent:  "#22d3ee", // cyan-300
-  good:    "#10b981",
-  warn:    "#f59e0b",
-  bad:     "#ef4444",
-  grid:    "#e5e7eb",
-};
-
-/* ---------------- MOCK DATA & RISK ---------------- */
-const BRANCHES = ["Downtown", "Midtown", "Uptown", "Riverside"]; 
-const PRODUCTS = ["Mortgage", "Auto", "Personal", "SMB", "Student"]; 
-const REASONS = [
-  "Home purchase", "Debt consolidation", "Vehicle purchase", "Working capital",
-  "Education", "Emergency expenses", "Refinance"
-];
-const CHANNELS = ["In-Branch", "Online", "Broker"];
-const OFFICERS = ["A. Patel", "M. Chen", "R. Johnson", "S. Davis", "K. Garcia"];
-
-function rng(min:number,max:number){return Math.random()*(max-min)+min}
-function pick<T>(arr:T[]){return arr[Math.floor(Math.random()*arr.length)]}
-function riskScore(dti:number, ltv:number, cs:number){
-  const ndti = Math.min(1, dti/0.5);            // 0..1 (>=50% risky)
-  const nltv = Math.min(1, ltv/0.95);           // 0..1 (>=95% risky)
-  const ncs  = 1 - Math.min(1, (cs-550)/(820-550)); // 1 bad -> 0 great
-  return +(0.4*ndti + 0.35*nltv + 0.25*ncs).toFixed(2);
-}
-function riskBand(score:number){ return score < 0.33 ? "Low" : score < 0.66 ? "Medium" : "High"; }
-
-const MOCK_LOANS = (()=>{
-  const out:any[]=[]; const now=new Date();
-  for(let i=0;i<520;i++){
-    const d=new Date(now); d.setDate(d.getDate()-Math.floor(Math.random()*180));
-    const product = pick(PRODUCTS);
-    const branch = pick(BRANCHES);
-    const officer = pick(OFFICERS);
-    const channel = pick(CHANNELS);
-    const reasonCategory = pick(REASONS);
-    const creditScore = Math.round(rng(560,810));
-    const dti = +(rng(0.1,0.55).toFixed(2));
-    const ltv = product==="Mortgage"? +(rng(0.5,0.97).toFixed(2)) : +(rng(0.2,0.9).toFixed(2));
-    const rscore = riskScore(dti, ltv, creditScore);
-    const rband = riskBand(rscore);
-    const base = product==="Mortgage"? rng(120000,650000) : product==="Auto"? rng(8000,65000) : product==="SMB"? rng(20000,250000) : rng(3000,55000);
-    const status = (rband==="High" && Math.random()<0.55) ? "declined" : (Math.random()<0.78?"approved":"declined");
-    const decisionReason = status==="approved"
-      ? (rband==="Low"?"Met policy; Low risk" : rband==="Medium"?"Met policy; Compensating factors" : "Exception approved; mitigants present")
-      : (dti>0.45?"Declined: DTI high" : ltv>0.9?"Declined: LTV high" : creditScore<620?"Declined: Credit score low":"Declined: Policy criteria");
-    const amount = Math.round(base/100)*100;
-    const customerSentiment = +((Math.random()*2-1)).toFixed(2);
-
-    out.push({ id:`LN-${10000+i}`, date:d.toISOString().slice(0,10), branch, product, amount, status, reasonCategory,
-      decisionReason, officer, channel, creditScore, dti, ltv, riskScore:rscore, riskBand:rband, customerSentiment });
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: radial-gradient(circle at top, #0ea5e9 0%, #061a2e 40%, #041423 100%);
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: white;
+    overflow: hidden;
   }
-  return out.sort((a,b)=>a.date.localeCompare(b.date));
-})();
 
-const MOCK_EMPLOYEES = Array.from({length:18}).map((_,i)=>{
-  const depts=["Lending","Customer Success","Risk","Collections","Support"];
-  return { id:`E-${i+1}`,
-    name:["Alex","Morgan","Riley","Jordan","Taylor","Sam","Casey"][i%7]+` ${String.fromCharCode(65+(i%26))}.`,
-    dept:depts[i%depts.length], branch:BRANCHES[i%BRANCHES.length], sentimentScore:+(Math.random()*2-1).toFixed(2) };
-});
-
-/* ------------------- UTILS ------------------- */
-const fmtCurrency = (n:number)=> n.toLocaleString(undefined,{style:"currency", currency:"USD", maximumFractionDigits:0});
-const pct = (n:number)=> `${(n*100).toFixed(1)}%`;
-const toCSV = (rows:any[]) => {
-  if(!rows.length) return "";
-  const headers = Object.keys(rows[0]);
-  const esc=(v:any)=>`"${String(v).replace(/"/g,'""')}"`;
-  const lines=[headers.join(","), ...rows.map(r=>headers.map(h=>esc(r[h]??"")).join(","))];
-  return lines.join("\n");
-}
-
-function localExplanation(l:any){
-  const parts:string[]=[];
-  parts.push(`This ${l.product.toLowerCase()} application was ${l.status}.`);
-  parts.push(`Risk band: ${l.riskBand} (score ${l.riskScore}).`);
-  if(l.status==="approved"){
-    parts.push("Key factors:");
-    if(l.creditScore>=700) parts.push("• strong credit score");
-    if(l.dti<=0.35) parts.push("• low DTI");
-    if(l.product!=="Personal" && l.ltv<=0.8) parts.push("• healthy LTV");
-    if(parts.length===2) parts.push("• policy alignment");
-  }else{
-    parts.push("Drivers:");
-    if(l.dti>0.45) parts.push("• high DTI");
-    if(l.ltv>0.9) parts.push("• high LTV");
-    if(l.creditScore<620) parts.push("• low credit score");
+  .center {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
   }
-  parts.push(`Channel: ${l.channel}. Officer: ${l.officer}.`);
-  return parts.join(" ");
-}
 
-async function fetchAiExplanation(loan:any){
-  try{
-    const res = await fetch("/api/explain",{method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(loan)});
-    if(!res.ok) throw new Error("No AI endpoint");
-    const data = await res.json();
-    return data.text as string;
-  }catch{ return localExplanation(loan); }
-}
+  .halo {
+    position: relative;
+    width: 360px;
+    height: 360px;
+  }
 
-/* ------------------- HALO HERO ------------------- */
-function BankGlyph(){
-  return (
-    <svg width="84" height="84" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-label="Bank icon">
-      <path d="M3 10h18"/>
-      <path d="M5 10v10"/>
-      <path d="M9 10v10"/>
-      <path d="M13 10v10"/>
-      <path d="M17 10v10"/>
-      <path d="M3 20h18"/>
-      <path d="M12 4 3 8h18l-9-4z"/>
-    </svg>
-  );
-}
+  .ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px dashed rgba(255,255,255,0.25);
+    box-shadow: 0 0 120px rgba(56,189,248,0.4);
+  }
 
-const ringIcons = [
-  { Icon: Globe, label: "Global" },
-  { Icon: BarChart3, label: "Analytics" },
-  { Icon: Handshake, label: "Partners" },
-  { Icon: Wifi, label: "Digital" },
-  { Icon: Lock, label: "Security" },
-  { Icon: Banknote, label: "Payments" },
-  { Icon: Signal, label: "Signals" },
-];
+  .core {
+    position: absolute;
+    inset: 50%;
+    width: 130px;
+    height: 130px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.35), rgba(255,255,255,0.08));
+    display: grid;
+    place-items: center;
+    box-shadow: 0 0 40px rgba(56,189,248,0.8);
+  }
 
-function HaloHero({ onExport }:{ onExport: ()=>void }){
-  const radius = 160; // px
-  return (
-    <div style={{ position:'relative', minHeight: 340, overflow:'hidden' }}>
-      {/* background orbs */}
-      <div style={{ position:'absolute', inset:0, pointerEvents:'none' }}>
-        <div style={{ position:'absolute', width:320, height:320, left:'50%', top:'50%', transform:'translate(-50%,-50%)', borderRadius:'9999px', boxShadow:`0 0 120px ${OCEAN.primaryStrong}66, inset 0 0 80px ${OCEAN.accent}55`, border:'1px solid rgba(255,255,255,0.15)'}}/>
-        <div style={{ position:'absolute', width:520, height:520, left:'50%', top:'50%', transform:'translate(-50%,-50%)', borderRadius:'9999px', border:'1px dashed rgba(255,255,255,0.18)' }}/>
-      </div>
+  .bank {
+    text-align: center;
+  }
 
-      {/* center glyph + title */}
-      <div className="flex flex-col items-center justify-center pt-8">
-        <div style={{ width:120, height:120, borderRadius:'9999px', display:'grid', placeItems:'center', background:'radial-gradient( circle at 50% 50%, rgba(255,255,255,0.22), rgba(255,255,255,0.06) )', boxShadow:`0 0 28px ${OCEAN.primary}aa, inset 0 0 12px ${OCEAN.accent}88`, border:'1px solid rgba(255,255,255,0.35)'}}>
-          <BankGlyph/>
-        </div>
-        <div className="mt-3 text-center">
-          <div className="text-3xl font-semibold tracking-wide" style={{textShadow:'0 0 16px rgba(56, 189, 248,.55)'}}>BANK</div>
-          <div className="text-sm text-white/80">Azoul • VaultAssist</div>
-        </div>
-        <div className="mt-4">
-          <Button onClick={onExport} className="bg-white text-sky-900 hover:bg-white/90">Export CSV</Button>
-        </div>
-      </div>
+  .bank svg {
+    width: 64px;
+    height: 64px;
+    stroke: white;
+  }
 
-      {/* orbiting icons */}
-      <div style={{ position:'absolute', left:'50%', top:'50%' }}>
-        {ringIcons.map((R, idx)=>{
-          const angle = (idx / ringIcons.length) * Math.PI * 2; // 0..2π
-          const x = Math.cos(angle) * radius; const y = Math.sin(angle) * radius;
-          return (
-            <div key={idx} style={{ position:'absolute', transform:`translate(${x}px, ${y}px)` }}>
-              <div style={{ width:56, height:56, borderRadius:9999, display:'grid', placeItems:'center', background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.25)', boxShadow:`0 0 18px ${OCEAN.primary}aa` }} title={R.label}>
-                <R.Icon color="#ffffff" size={24}/>
-              </div>
-            </div>
-          );
-        })}
+  .bank h1 {
+    margin: 8px 0 0;
+    font-size: 26px;
+    letter-spacing: 2px;
+  }
+
+  .orbit {
+    position: absolute;
+    inset: 0;
+  }
+
+  .icon {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    display: grid;
+    place-items: center;
+    box-shadow: 0 0 16px rgba(56,189,248,0.8);
+  }
+
+  .icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: white;
+  }
+
+  /* Position icons around circle */
+  .i1 { top: -8px; left: 50%; transform: translateX(-50%); }
+  .i2 { top: 18%; right: -6px; }
+  .i3 { top: 50%; right: -12px; transform: translateY(-50%); }
+  .i4 { bottom: 18%; right: -6px; }
+  .i5 { bottom: -8px; left: 50%; transform: translateX(-50%); }
+  .i6 { bottom: 18%; left: -6px; }
+  .i7 { top: 50%; left: -12px; transform: translateY(-50%); }
+</style>
+</head>
+
+<body>
+
+<div class="center">
+  <div class="halo">
+
+    <div class="ring"></div>
+
+    <div class="core">
+      <div class="bank">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6">
+          <path d="M3 10h18"/>
+          <path d="M5 10v10"/>
+          <path d="M9 10v10"/>
+          <path d="M13 10v10"/>
+          <path d="M17 10v10"/>
+          <path d="M3 20h18"/>
+          <path d="M12 4 3 8h18l-9-4z"/>
+        </svg>
+        <h1>BANK</h1>
       </div>
     </div>
-  );
-}
 
-/* ------------------- MAIN ------------------- */
-export default function AzoulVaultAssistHalo(){
-  // Role & filters
-  const [role, setRole] = useState<"Officer"|"Manager"|"HR">("Manager");
-  const [officer, setOfficer] = useState<string>(OFFICERS[0]);
-  const [branch, setBranch] = useState<string>("All branches");
-  const [product, setProduct] = useState<string>("All products");
-  const [range, setRange] = useState<string>("last90");
-  const [search, setSearch] = useState("");
-  const [expandingId, setExpandingId] = useState<string|null>(null);
-  const [explanations, setExplanations] = useState<Record<string,string>>({});
+    <div class="orbit">
+      <div class="icon i1">🌐</div>
+      <div class="icon i2">📊</div>
+      <div class="icon i3">🤝</div>
+      <div class="icon i4">📶</div>
+      <div class="icon i5">🔒</div>
+      <div class="icon i6">💳</div>
+      <div class="icon i7">📡</div>
+    </div>
 
-  const rangeDays = useMemo(()=>({last30:30,last90:90,last180:180} as const)[range as any],[range]);
+  </div>
+</div>
 
-  const filteredLoans = useMemo(()=>{
-    const after = new Date(); after.setDate(after.getDate()-rangeDays);
-    return MOCK_LOANS.filter(l=>{
-      const within = new Date(l.date) >= after;
-      const bySearch = !search || JSON.stringify(l).toLowerCase().includes(search.toLowerCase());
-      const byProd = product==="All products" || l.product===product;
-      const byBranch = branch==="All branches" || l.branch===branch;
-      const byRole = role==="Officer"? l.officer===officer : role==="Manager"? byBranch : true; // HR sees all
-      return within && bySearch && byProd && byBranch && byRole;
-    });
-  },[branch, product, rangeDays, search, role, officer]);
-
-  const kpis = useMemo(()=>{
-    const approved = filteredLoans.filter(l=>l.status==="approved");
-    const totalLoaned = approved.reduce((s,x)=>s+x.amount,0);
-    const approvalRate = approved.length/Math.max(1,filteredLoans.length);
-    const avgAmount = approved.length? totalLoaned/approved.length : 0;
-    return { totalLoaned, approvalRate, avgAmount };
-  },[filteredLoans]);
-
-  // Charts
-  const approvalByBranch = useMemo(()=>{
-    const map = new Map<string,{name:string, approved:number, total:number}>();
-    for(const l of filteredLoans){
-      const key=l.branch; if(!map.has(key)) map.set(key,{name:key,approved:0,total:0});
-      const r=map.get(key)!; r.total++; if(l.status==="approved") r.approved++;
-    }
-    return Array.from(map.values()).map(x=>({...x, rate: +(x.approved/Math.max(1,x.total)).toFixed(2)}));
-  },[filteredLoans]);
-
-  const avgByOfficer = useMemo(()=>{
-    const map = new Map<string,{name:string, sum:number, cnt:number}>();
-    for(const l of filteredLoans.filter(x=>x.status==="approved")){
-      if(!map.has(l.officer)) map.set(l.officer,{name:l.officer,sum:0,cnt:0});
-      const r=map.get(l.officer)!; r.sum+=l.amount; r.cnt++;
-    }
-    return Array.from(map.values()).map(x=>({name:x.name, avg: Math.round(x.sum/Math.max(1,x.cnt))}));
-  },[filteredLoans]);
-
-  const reasonsByChannel = useMemo(()=>{
-    const channels = Array.from(new Set(filteredLoans.map(l=>l.channel)));
-    const reasons = Array.from(new Set(filteredLoans.map(l=>l.reasonCategory)));
-    const rows = channels.map(c=>{
-      const row:any={channel:c};
-      for(const r of reasons) row[r]=0;
-      for(const l of filteredLoans.filter(x=>x.status==="approved" && x.channel===c)) row[l.reasonCategory]++;
-      return row;
-    });
-    return { reasons, rows };
-  },[filteredLoans]);
-
-  const riskDist = useMemo(()=>{
-    const bands = { Low:0, Medium:0, High:0 } as Record<string,number>;
-    for(const l of filteredLoans) bands[l.riskBand]++;
-    return Object.entries(bands).map(([name,value])=>({name,value}));
-  },[filteredLoans]);
-
-  const bubbleData = useMemo(()=>{
-    return PRODUCTS.map(p=>({
-      name:p,
-      points: filteredLoans.filter(l=>l.product===p).slice(0,40).map(l=>({ x:l.riskScore, y:l.amount, z: Math.max(8, Math.min(30, l.amount/25000)) }))
-    }));
-  },[filteredLoans]);
-
-  const treemapData = useMemo(()=>{
-    const map = new Map<string, Map<string, number>>();
-    for(const l of filteredLoans){
-      if(!map.has(l.product)) map.set(l.product,new Map());
-      const inner = map.get(l.product)!; inner.set(l.branch, (inner.get(l.branch)||0)+l.amount);
-    }
-    const children:any[]=[];
-    for(const [prod, inner] of map){
-      children.push({ name: prod, children: Array.from(inner.entries()).map(([b,amt])=>({ name:b, size:amt }))});
-    }
-    return { name:"Products", children } as any;
-  },[filteredLoans]);
-
-  const exportCSV = useCallback(()=>{
-    const csv = toCSV(filteredLoans);
-    const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href=url; a.download='azoul_vaultassist_loans.csv'; a.click();
-    URL.revokeObjectURL(url);
-  },[filteredLoans]);
-
-  const [expLoading, setExpLoading] = useState(false);
-  const getExplanation = useCallback(async(id:string)=>{
-    if(explanations[id]){ setExpandingId(expandingId===id?null:id); return; }
-    const loan = filteredLoans.find(l=>l.id===id); if(!loan) return;
-    setExpandingId(id); setExpLoading(true);
-    const text = await fetchAiExplanation(loan);
-    setExpLoading(false);
-    setExplanations(prev=>({...prev,[id]:text}));
-  },[filteredLoans, explanations, expandingId]);
-
-  const reasonPalette = [OCEAN.primary, OCEAN.primaryStrong, OCEAN.accent, "#93c5fd", "#1d4ed8", "#06b6d4", "#94a3b8"];
-
-  return (
-    <TooltipProvider>
-      <div style={{
-        minHeight:'100vh',
-        background:`radial-gradient(1200px 600px at 70% -10%, rgba(56,189,248,.15), transparent), linear-gradient(135deg, ${OCEAN.bgStart} 0%, ${OCEAN.bgEnd} 100%)`,
-        color: 'white'
-      }}>
-        {/* Hero */}
-        <section className="max-w-7xl mx-auto px-4 pt-10">
-          <HaloHero onExport={exportCSV}/>
-        </section>
-
-        {/* Controls */}
-        <section className="max-w-7xl mx-auto px-4 pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
-          <div>
-            <label className="text-xs text-white/80">Role</label>
-            <Select value={role} onValueChange={(v:any)=>setRole(v)}>
-              <SelectTrigger className="bg-white/90 text-sky-900"><SelectValue/></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Officer">Officer</SelectItem>
-                <SelectItem value="Manager">Manager</SelectItem>
-                <SelectItem value="HR">HR</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {role==="Officer" && (
-            <div>
-              <label className="text-xs text-white/80">Officer</label>
-              <Select value={officer} onValueChange={setOfficer}>
-                <SelectTrigger className="bg-white/90 text-sky-900"><SelectValue/></SelectTrigger>
-                <SelectContent>{OFFICERS.map(o=> <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          )}
-          <div>
-            <label className="text-xs text-white/80">Branch</label>
-            <Select value={branch} onValueChange={setBranch}>
-              <SelectTrigger className="bg-white/90 text-sky-900"><SelectValue/></SelectTrigger>
-              <SelectContent>{["All branches",...BRANCHES].map(b=> <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs text-white/80">Product</label>
-            <Select value={product} onValueChange={setProduct}>
-              <SelectTrigger className="bg-white/90 text-sky-900"><SelectValue/></SelectTrigger>
-              <SelectContent>{["All products",...PRODUCTS].map(p=> <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs text-white/80">Date Range</label>
-            <Tabs value={range} onValueChange={setRange}>
-              <TabsList className="grid grid-cols-3 bg-white/15 text-white">
-                <TabsTrigger value="last30">30d</TabsTrigger>
-                <TabsTrigger value="last90">90d</TabsTrigger>
-                <TabsTrigger value="last180">180d</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-          <div className="flex flex-col">
-            <label className="text-xs text-white/80">Search</label>
-            <div className="relative">
-              <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-white/90"/>
-              <Input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Find loans, officers, reasons…" className="pl-8 bg-white/90 text-sky-900"/>
-            </div>
-          </div>
-        </section>
-
-        {/* KPIs */}
-        <section className="max-w-7xl mx-auto px-4 py-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            { label:'Total Loaned', value: fmtCurrency(kpis.totalLoaned) },
-            { label:'Approval Rate', value: pct(kpis.approvalRate) },
-            { label:'Avg Approved Amount', value: fmtCurrency(kpis.avgAmount) },
-          ].map((k)=> (
-            <div key={k.label} className="rounded-xl shadow-lg" style={{background:OCEAN.card, color:OCEAN.text}}>
-              <div className="px-4 py-3 text-sm font-medium text-sky-900/80">{k.label}</div>
-              <div className="px-4 pb-4 text-3xl font-semibold text-sky-900">{k.value}</div>
-            </div>
-          ))}
-        </section>
-
-        {/* Charts Row 1 */}
-        <section className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="rounded-xl p-3 shadow-lg" style={{background:OCEAN.card, color:OCEAN.text}}>
-            <div className="px-1 pb-1 font-semibold text-sky-900">Approval Rate by Branch</div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={approvalByBranch}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={OCEAN.grid}/>
-                  <XAxis dataKey="name"/>
-                  <YAxis tickFormatter={(v)=>pct(v as number)}/>
-                  <Tooltip formatter={(v:number)=>pct(v as number)}/>
-                  <Bar dataKey="rate" name="Approval Rate" fill={OCEAN.primaryStrong}/>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-xl p-3 shadow-lg" style={{background:OCEAN.card, color:OCEAN.text}}>
-            <div className="px-1 pb-1 font-semibold text-sky-900">Avg Approved Amount by Officer</div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={avgByOfficer}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={OCEAN.grid}/>
-                  <XAxis dataKey="name"/>
-                  <YAxis tickFormatter={(v)=>`$${(Number(v)/1000).toFixed(0)}k`}/>
-                  <Tooltip formatter={(v:number)=>fmtCurrency(v as number)}/>
-                  <Bar dataKey="avg" name="Avg Amount" fill={OCEAN.primary}/>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-xl p-3 shadow-lg" style={{background:OCEAN.card, color:OCEAN.text}}>
-            <div className="px-1 pb-1 font-semibold text-sky-900">Risk Distribution</div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={riskDist} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75} paddingAngle={2}>
-                    {riskDist.map((_,i)=>(<Cell key={i} fill={[OCEAN.good, OCEAN.warn, OCEAN.bad][i]}/>))}
-                  </Pie>
-                  <Tooltip/>
-                  <Legend/>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </section>
-
-        {/* Charts Row 2 */}
-        <section className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-          <div className="rounded-xl p-3 shadow-lg lg:col-span-2" style={{background:OCEAN.card, color:OCEAN.text}}>
-            <div className="px-1 pb-1 font-semibold text-sky-900">Why Loans Were Made by Channel</div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={reasonsByChannel.rows}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={OCEAN.grid}/>
-                  <XAxis dataKey="channel"/>
-                  <YAxis/>
-                  <Tooltip/>
-                  <Legend/>
-                  {reasonsByChannel.reasons.map((r,i)=> (
-                    <Bar key={r} dataKey={r} stackId="a" fill={reasonPalette[i%reasonPalette.length]} />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-xl p-3 shadow-lg" style={{background:OCEAN.card, color:OCEAN.text}}>
-            <div className="px-1 pb-1 font-semibold text-sky-900">Product Share (Donut)</div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={PRODUCTS.map(p=>({ name:p, value: filteredLoans.filter(l=>l.product===p).length }))} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
-                    {PRODUCTS.map((_,i)=>(<Cell key={i} fill={reasonPalette[i%reasonPalette.length]}/>))}
-                  </Pie>
-                  <Tooltip/>
-                  <Legend/>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </section>
-
-        {/* Charts Row 3 */}
-        <section className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-          <div className="rounded-xl p-3 shadow-lg" style={{background:OCEAN.card, color:OCEAN.text}}>
-            <div className="px-1 pb-1 font-semibold text-sky-900">Amount vs Risk (Bubble) by Product</div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" stroke={OCEAN.grid}/>
-                  <XAxis type="number" dataKey="x" name="Risk" domain={[0,1]}/>
-                  <YAxis type="number" dataKey="y" name="Amount" tickFormatter={(v)=>`$${(Number(v)/1000).toFixed(0)}k`}/>
-                  <ZAxis type="number" dataKey="z" range={[5,40]} />
-                  <Tooltip/>
-                  {bubbleData.map((s,i)=> (
-                    <Scatter key={s.name} name={s.name} data={s.points} fill={reasonPalette[i%reasonPalette.length]} />
-                  ))}
-                </ScatterChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-xl p-3 shadow-lg" style={{background:OCEAN.card, color:OCEAN.text}}>
-            <div className="px-1 pb-1 font-semibold text-sky-900">Amount by Product × Branch (Treemap)</div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <Treemap data={treemapData.children} dataKey="size" nameKey="name" aspectRatio={4/3} stroke="#fff" fill={OCEAN.primaryStrong} />
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </section>
-
-        {/* Loans Table with Explanations */}
-        <section className="max-w-7xl mx-auto px-4 mt-4 pb-10">
-          <div className="rounded-xl shadow-lg overflow-hidden" style={{background:OCEAN.card, color:OCEAN.text}}>
-            <div className="px-4 py-3 border-b" style={{borderColor:'#e6eef8'}}>
-              <div className="text-sky-900 font-semibold">Recent Loans & Reasons</div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead style={{background:'#f1f7ff', color:'#0b1b3b'}}>
-                  <tr>
-                    <th className="text-left p-2">Date</th>
-                    <th className="text-left p-2">Loan #</th>
-                    <th className="text-left p-2">Branch</th>
-                    <th className="text-left p-2">Product</th>
-                    <th className="text-right p-2">Amount</th>
-                    <th className="text-left p-2">Status</th>
-                    <th className="text-left p-2">Why (Category)</th>
-                    <th className="text-left p-2">Risk</th>
-                    <th className="text-left p-2">Officer</th>
-                    <th className="text-left p-2">Channel</th>
-                    <th className="text-left p-2">Explain</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredLoans.slice(-25).reverse().map((l)=> (
-                    <React.Fragment key={l.id}>
-                      <tr className="border-b" style={{borderColor:'#eef4ff'}}>
-                        <td className="p-2">{l.date}</td>
-                        <td className="p-2 text-sky-800 font-medium">{l.id}</td>
-                        <td className="p-2">{l.branch}</td>
-                        <td className="p-2">{l.product}</td>
-                        <td className="p-2 text-right">{fmtCurrency(l.amount)}</td>
-                        <td className="p-2">{l.status}</td>
-                        <td className="p-2">{l.reasonCategory}</td>
-                        <td className="p-2">
-                          <span className={l.riskBand==="Low"?"text-green-700": l.riskBand==="Medium"?"text-amber-700":"text-red-700"}>{l.riskBand}</span>
-                        </td>
-                        <td className="p-2">{l.officer}</td>
-                        <td className="p-2">{l.channel}</td>
-                        <td className="p-2">
-                          <Button variant="outline" size="sm" onClick={()=>getExplanation(l.id)} className="border-sky-200">
-                            <Info className="h-4 w-4 mr-1"/>Explain
-                          </Button>
-                        </td>
-                      </tr>
-                      {expandingId===l.id && (
-                        <tr style={{background:'#f7fbff'}}>
-                          <td colSpan={11} className="p-3 text-sky-900 text-sm">
-                            {explanations[l.id] || (expLoading? "Generating explanation…" : "")}
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="pb-10 text-center text-xs text-white/80">
-          Azoul • VaultAssist • <span className="italic">Quasinss</span>
-        </footer>
-      </div>
-    </TooltipProvider>
-  );
-}
+</body>
+</html>
