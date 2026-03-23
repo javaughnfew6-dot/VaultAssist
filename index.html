@@ -136,3 +136,538 @@
 
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Azoul — VaultAssist (Ocean Halo + Analytics)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Chart.js CDN (for charts) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+  :root{
+    --bg-start:#061a2e;      /* deep ocean */
+    --bg-end:#0b3c6e;        /* mid ocean  */
+    --white:#ffffff;
+    --ink:#0b1b3b;
+    --sky400:#38bdf8;
+    --sky500:#0ea5e9;
+    --cyan300:#22d3ee;
+    --good:#10b981;
+    --warn:#f59e0b;
+    --bad:#ef4444;
+    --grid:#e5e7eb;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--white);
+    background:
+      radial-gradient(1200px 600px at 70% -10%, rgba(56,189,248,.15), transparent),
+      linear-gradient(135deg, var(--bg-start), var(--bg-end));
+  }
+  .container{max-width:1160px;margin:0 auto;padding:16px}
+  .section{margin-top:16px}
+  .flex{display:flex;gap:12px;flex-wrap:wrap}
+  .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  @media (max-width:980px){.grid-3,.grid-2{grid-template-columns:1fr}}
+  .card{
+    background:#fff;
+    color:var(--ink);
+    border-radius:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+    overflow:hidden;
+  }
+  .card .h{padding:10px 14px;border-bottom:1px solid #e6eef8;font-weight:600;color:#0b3c6e}
+  .card .b{padding:12px 14px}
+  .kpi{padding:12px 14px;border-radius:14px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.15)}
+  .kpi .lbl{font-size:12px;color:#0b3c6e;opacity:.8}
+  .kpi .val{font-size:28px;font-weight:700;color:#0b3c6e}
+
+  /* Controls */
+  label{font-size:12px;opacity:.85}
+  select,input{
+    appearance:none;
+    border:1px solid #cfe5fb;
+    background:#fff;
+    color:#0b3c6e;
+    border-radius:10px;
+    padding:8px 10px;
+    width:100%;
+  }
+  .btn{
+    background:#fff;color:#0b3c6e;border:0;border-radius:10px;padding:9px 12px;
+    box-shadow:0 6px 18px rgba(0,0,0,.12);cursor:pointer
+  }
+  .btn:hover{background:#f9fdff}
+  .btn.primary{background:#fff;color:#0b3c6e}
+  .btn.small{padding:6px 10px;border:1px solid #cfe5fb}
+
+  /* Halo Hero */
+  .hero{position:relative;min-height:360px;overflow:hidden;display:grid;place-items:center;margin-top:10px}
+  .halo{
+    position:relative;width:360px;height:360px;
+    filter: drop-shadow(0 0 40px rgba(56,189,248,.5));
+  }
+  .ring{position:absolute;inset:0;border-radius:9999px;border:1px dashed rgba(255,255,255,.22)}
+  .orb{
+    position:absolute;left:50%;top:50%;width:130px;height:130px;transform:translate(-50%,-50%);
+    border-radius:9999px;display:grid;place-items:center;
+    background:radial-gradient(circle, rgba(255,255,255,.28), rgba(255,255,255,.07));
+    box-shadow:0 0 28px rgba(56,189,248,.7), inset 0 0 12px rgba(34,211,238,.6);
+    border:1px solid rgba(255,255,255,.35)
+  }
+  .bank-title{margin-top:6px;text-align:center;text-shadow:0 0 16px rgba(56,189,248,.55)}
+  .bank-title h1{margin:0;font-size:28px;letter-spacing:2px}
+  .bank-sub{font-size:12px;opacity:.85;margin-top:2px}
+
+  .orbit{position:absolute;left:50%;top:50%}
+  .ico{
+    position:absolute;width:46px;height:46px;border-radius:9999px;
+    background:rgba(255,255,255,.1);display:grid;place-items:center;
+    border:1px solid rgba(255,255,255,.25);box-shadow:0 0 16px rgba(56,189,248,.6);
+    font-size:20px;
+  }
+
+  /* Table */
+  table{width:100%;border-collapse:collapse}
+  thead{background:#f1f7ff;color:#0b1b3b}
+  th, td{padding:8px 10px;font-size:13px}
+  tbody tr{border-bottom:1px solid #eef4ff}
+  .risk-low{color:#0f766e}.risk-med{color:#b45309}.risk-high{color:#b91c1c}
+  .explain{background:#f7fbff;color:#0b1b3b}
+
+  /* Image strip (optional) */
+  .strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+  .strip img{width:100%;height:120px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.25)}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HERO (halo + bank glyph) -->
+  <section class="hero card" style="background:linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.06)); color:white; border:1px solid rgba(255,255,255,.15);">
+    <div class="halo" id="halo">
+      <div class="ring"></div>
+      <div class="orb">
+        <!-- bank glyph -->
+        <svg viewBox="0 0 24 24" width="70" height="70" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-label="Bank">
+          <path d="M3 10h18"/>
+          <path d="M5 10v10"/>
+          <path d="M9 10v10"/>
+          <path d="M13 10v10"/>
+          <path d="M17 10v10"/>
+          <path d="M3 20h18"/>
+          <path d="M12 4 3 8h18l-9-4z"/>
+        </svg>
+        <div class="bank-title">
+          <h1>BANK</h1>
+          <div class="bank-sub">Azoul • VaultAssist</div>
+        </div>
+      </div>
+
+      <!-- Orbiting icons (emoji for lightweight render) -->
+      <!-- positions computed by JS for perfect circle; fallback CSS positions if JS fails -->
+      <div class="orbit" id="orbit">
+        <!-- JS will inject 7 .ico elements around the circle -->
+      </div>
+    </div>
+
+    <!-- Optional screenshots strip (place images next to this HTML and keep these names) -->
+    <div class="strip" style="position:absolute; left:14px; right:14px; bottom:14px;">
+      <img src="sample-1.jpg" alt="sample-1" onerror="this.style.display='none'">
+      <img src="sample-2.jpg" alt="sample-2" onerror="this.style.display='none'">
+      <img src="sample-3.jpg" alt="sample-3" onerror="this.style.display='none'">
+    </div>
+  </section>
+
+  <!-- CONTROLS -->
+  <section class="section card" style="background:rgba(255,255,255,.98)">
+    <div class="b">
+      <div class="flex">
+        <div style="min-width:160px;flex:1">
+          <label>Role</label>
+          <select id="role">
+            <option>Manager</option>
+            <option>Officer</option>
+            <option>HR</option>
+          </select>
+        </div>
+        <div style="min-width:160px;flex:1" id="officerBox" hidden>
+          <label>Officer</label>
+          <select id="officer"></select>
+        </div>
+        <div style="min-width:160px;flex:1">
+          <label>Branch</label>
+          <select id="branch"></select>
+        </div>
+        <div style="min-width:160px;flex:1">
+          <label>Product</label>
+          <select id="product"></select>
+        </div>
+        <div style="min-width:200px;flex:1">
+          <label>Date Range</label>
+          <select id="range">
+            <option value="30">Last 30 days</option>
+            <option value="90" selected>Last 90 days</option>
+            <option value="180">Last 180 days</option>
+          </select>
+        </div>
+        <div style="min-width:220px;flex:2">
+          <label>Search</label>
+          <input id="search" placeholder="Find loans, officers, reasons…">
+        </div>
+        <div style="align-self:end">
+          <button class="btn primary" id="exportBtn">Export CSV</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- KPIs -->
+  <section class="section grid-3">
+    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">$0</div></div>
+    <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">0%</div></div>
+    <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">$0</div></div>
+  </section>
+
+  <!-- CHARTS row 1 -->
+  <section class="section grid-3">
+    <div class="card">
+      <div class="h">Approval Rate by Branch</div>
+      <div class="b"><canvas id="chartBranchRate" height="220"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="h">Avg Approved Amount by Officer</div>
+      <div class="b"><canvas id="chartOfficerAvg" height="220"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="h">Risk Distribution</div>
+      <div class="b"><canvas id="chartRisk" height="220"></canvas></div>
+    </div>
+  </section>
+
+  <!-- CHARTS row 2 -->
+  <section class="section grid-2">
+    <div class="card">
+      <div class="h">Why Loans Were Made by Channel</div>
+      <div class="b"><canvas id="chartReasonsChannel" height="280"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="h">Amount vs Risk (Bubble) by Product</div>
+      <div class="b"><canvas id="chartBubble" height="280"></canvas></div>
+    </div>
+  </section>
+
+  <!-- TABLE -->
+  <section class="section card">
+    <div class="h">Recent Loans & Reasons</div>
+    <div class="b" style="overflow:auto">
+      <table id="loansTable">
+        <thead>
+          <tr>
+            <th>Date</th><th>Loan #</th><th>Branch</th><th>Product</th><th style="text-align:right">Amount</th>
+            <th>Status</th><th>Why (Category)</th><th>Risk</th><th>Officer</th><th>Channel</th><th>Explain</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyLoans"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div style="text-align:center;opacity:.8;margin:18px 0 26px">Azoul • VaultAssist • <i>Quasinss</i></div>
+
+</div>
+
+<script>
+/* ----------------------- Theme helpers ----------------------- */
+const OCEAN = {
+  primary: getComputedStyle(document.documentElement).getPropertyValue('--sky400').trim(),
+  primaryStrong: getComputedStyle(document.documentElement).getPropertyValue('--sky500').trim(),
+  accent: getComputedStyle(document.documentElement).getPropertyValue('--cyan300').trim(),
+  good: getComputedStyle(document.documentElement).getPropertyValue('--good').trim(),
+  warn: getComputedStyle(document.documentElement).getPropertyValue('--warn').trim(),
+  bad:  getComputedStyle(document.documentElement).getPropertyValue('--bad').trim()
+};
+
+/* ----------------------- Mock data + risk ----------------------- */
+const BRANCHES = ["Downtown","Midtown","Uptown","Riverside"];
+const PRODUCTS = ["Mortgage","Auto","Personal","SMB","Student"];
+const REASONS  = ["Home purchase","Debt consolidation","Vehicle purchase","Working capital","Education","Emergency expenses","Refinance"];
+const CHANNELS = ["In-Branch","Online","Broker"];
+const OFFICERS = ["A. Patel","M. Chen","R. Johnson","S. Davis","K. Garcia"];
+
+function rng(min,max){return Math.random()*(max-min)+min}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function riskScore(dti, ltv, cs){
+  const ndti = Math.min(1, dti/0.5);
+  const nltv = Math.min(1, ltv/0.95);
+  const ncs  = 1 - Math.min(1, (cs-550)/(820-550));
+  return +(0.4*ndti + 0.35*nltv + 0.25*ncs).toFixed(2);
+}
+function riskBand(s){ return s<0.33?"Low": s<0.66?"Medium":"High"; }
+function currency(n){ return n.toLocaleString(undefined,{style:"currency",currency:"USD",maximumFractionDigits:0}); }
+
+const LOANS = (()=> {
+  const out=[]; const now=new Date();
+  for(let i=0;i<520;i++){
+    const d=new Date(now); d.setDate(d.getDate()-Math.floor(Math.random()*180));
+    const product=pick(PRODUCTS), branch=pick(BRANCHES), officer=pick(OFFICERS), channel=pick(CHANNELS), reasonCategory=pick(REASONS);
+    const creditScore=Math.round(rng(560,810)); const dti=+(rng(0.1,0.55).toFixed(2));
+    const ltv = product==="Mortgage" ? +(rng(0.5,0.97).toFixed(2)) : +(rng(0.2,0.9).toFixed(2));
+    const rscore=riskScore(dti,ltv,creditScore); const rband=riskBand(rscore);
+    const base = product==="Mortgage"? rng(120000,650000) : product==="Auto"? rng(8000,65000) : product==="SMB"? rng(20000,250000) : rng(3000,55000);
+    const status = (rband==="High" && Math.random()<0.55) ? "declined" : (Math.random()<0.78?"approved":"declined");
+    const decisionReason = status==="approved"
+      ? (rband==="Low"?"Met policy; Low risk":rband==="Medium"?"Met policy; Compensating factors":"Exception approved; mitigants present")
+      : (dti>0.45?"Declined: DTI high": ltv>0.9?"Declined: LTV high": creditScore<620?"Declined: Credit score low":"Declined: Policy criteria");
+    const amount = Math.round(base/100)*100;
+    const customerSentiment = +((Math.random()*2-1)).toFixed(2);
+
+    out.push({ id:`LN-${10000+i}`, date:d.toISOString().slice(0,10), branch, product, amount, status, reasonCategory,
+      decisionReason, officer, channel, creditScore, dti, ltv, riskScore:rscore, riskBand:rband, customerSentiment });
+  }
+  return out.sort((a,b)=> a.date.localeCompare(b.date) );
+})();
+
+/* ----------------------- Orbit icons around hero ----------------------- */
+(function placeOrbitIcons(){
+  const orbit = document.getElementById('orbit');
+  const icons = ["🌐","📊","🤝","📶","🔒","💳","📡"];
+  const r = 160;
+  icons.forEach((txt,i)=>{
+    const a = (i/icons.length)*Math.PI*2;
+    const x = Math.cos(a)*r, y=Math.sin(a)*r;
+    const d=document.createElement('div'); d.className='ico'; d.textContent=txt;
+    d.style.transform = `translate(${x}px, ${y}px)`;
+    orbit.appendChild(d);
+  });
+})();
+
+/* ----------------------- Filters ----------------------- */
+const elRole = document.getElementById('role');
+const elOfficerBox = document.getElementById('officerBox');
+const elOfficer = document.getElementById('officer');
+const elBranch = document.getElementById('branch');
+const elProduct= document.getElementById('product');
+const elRange  = document.getElementById('range');
+const elSearch = document.getElementById('search');
+const elExport = document.getElementById('exportBtn');
+
+OFFICERS.forEach(o=> { const op=new Option(o,o); elOfficer.add(op); });
+["All branches",...BRANCHES].forEach(b=> elBranch.add(new Option(b,b)));
+["All products",...PRODUCTS].forEach(p=> elProduct.add(new Option(p,p)));
+
+elRole.addEventListener('change', ()=> {
+  elOfficerBox.hidden = elRole.value !== 'Officer';
+  refreshAll();
+});
+[elOfficer, elBranch, elProduct, elRange, elSearch].forEach(e=> e.addEventListener('input', refreshAll));
+
+/* ----------------------- KPIs & Charts & Table ----------------------- */
+const kpiTotal = document.getElementById('kpiTotal');
+const kpiRate  = document.getElementById('kpiRate');
+const kpiAvg   = document.getElementById('kpiAvg');
+
+let chBranchRate, chOfficerAvg, chRisk, chReasonsChannel, chBubble;
+
+function filterLoans(){
+  const days = +elRange.value;
+  const after = new Date(); after.setDate(after.getDate()-days);
+
+  return LOANS.filter(l=>{
+    const within = new Date(l.date) >= after;
+    const q = elSearch.value.trim().toLowerCase();
+    const searchOk = !q || JSON.stringify(l).toLowerCase().includes(q);
+    const prodOk = (elProduct.value==="All products" || l.product===elProduct.value);
+    const branchOk = (elBranch.value==="All branches" || l.branch===elBranch.value);
+    const roleOk = elRole.value==="Officer" ? l.officer===elOfficer.value
+                 : elRole.value==="Manager" ? branchOk : true; // HR sees all
+    return within && searchOk && prodOk && (elRole.value==="Manager"? true: branchOk) && roleOk;
+  });
+}
+
+function updateKPIs(loans){
+  const approved = loans.filter(l=> l.status==="approved");
+  const total = approved.reduce((s,x)=> s+x.amount, 0);
+  const rate = (approved.length / Math.max(loans.length,1));
+  const avg  = approved.length ? (total/approved.length) : 0;
+  kpiTotal.textContent = currency(total);
+  kpiRate.textContent  = (rate*100).toFixed(1)+'%';
+  kpiAvg.textContent   = currency(avg);
+}
+
+function makeOrUpdateChart(ctx, type, data, options, instRef){
+  if (instRef && instRef.data){ instRef.data = data; instRef.options = options; instRef.update(); return instRef; }
+  return new Chart(ctx, { type, data, options });
+}
+
+function updateCharts(loans){
+  // 1) Approval Rate by Branch
+  const byB = {};
+  loans.forEach(l=>{
+    if(!byB[l.branch]) byB[l.branch]={total:0,approved:0};
+    byB[l.branch].total++; if(l.status==="approved") byB[l.branch].approved++;
+  });
+  const labelsB = Object.keys(byB);
+  const ratesB = labelsB.map(k=> +(byB[k].approved/Math.max(byB[k].total,1)).toFixed(2));
+  chBranchRate = makeOrUpdateChart(
+    document.getElementById('chartBranchRate'),
+    'bar',
+    { labels: labelsB, datasets: [{label:'Approval Rate', data: ratesB, backgroundColor: OCEAN.primaryStrong}]},
+    { scales:{ y:{ ticks:{ callback:v=> (v*100)+'%' }, beginAtZero:true, max:1 }}, plugins:{legend:{display:false}} },
+    chBranchRate
+  );
+
+  // 2) Avg Approved Amount by Officer
+  const byO = {};
+  loans.filter(l=>l.status==="approved").forEach(l=>{
+    if(!byO[l.officer]) byO[l.officer]={sum:0,cnt:0};
+    byO[l.officer].sum+=l.amount; byO[l.officer].cnt++;
+  });
+  const labelsO = Object.keys(byO);
+  const avgsO = labelsO.map(k=> Math.round(byO[k].sum/Math.max(byO[k].cnt,1)));
+  chOfficerAvg = makeOrUpdateChart(
+    document.getElementById('chartOfficerAvg'),
+    'bar',
+    { labels: labelsO, datasets: [{label:'Avg Amount', data: avgsO, backgroundColor: OCEAN.primary}]},
+    { scales:{ y:{ ticks:{ callback:v=> '$'+(v/1000).toFixed(0)+'k' }, beginAtZero:true }}, plugins:{legend:{display:false}} },
+    chOfficerAvg
+  );
+
+  // 3) Risk Distribution
+  const rb={Low:0,Medium:0,High:0}; loans.forEach(l=> rb[l.riskBand]++);
+  chRisk = makeOrUpdateChart(
+    document.getElementById('chartRisk'),
+    'doughnut',
+    { labels:['Low','Medium','High'], datasets:[{ data:[rb.Low, rb.Medium, rb.High], backgroundColor:[OCEAN.good,OCEAN.warn,OCEAN.bad] }]},
+    { plugins:{legend:{position:'bottom'}} },
+    chRisk
+  );
+
+  // 4) Reasons × Channel (stacked)
+  const reasons = Array.from(new Set(loans.map(l=>l.reasonCategory)));
+  const channels = Array.from(new Set(loans.map(l=>l.channel)));
+  const stackData = channels.map(c=> {
+    const counts={}; reasons.forEach(r=>counts[r]=0);
+    loans.filter(l=> l.status==="approved" && l.channel===c).forEach(l=> counts[l.reasonCategory]++);
+    return {channel:c, counts};
+  });
+  const datasets = reasons.map((r,i)=>({
+    label:r,
+    data: stackData.map(x=> x.counts[r]),
+    backgroundColor: [OCEAN.primary,OCEAN.primaryStrong,OCEAN.accent,'#93c5fd','#1d4ed8','#06b6d4','#94a3b8'][i%7]
+  }));
+  chReasonsChannel = makeOrUpdateChart(
+    document.getElementById('chartReasonsChannel'),
+    'bar',
+    { labels: stackData.map(x=>x.channel), datasets },
+    { responsive:true, plugins:{legend:{position:'bottom'}}, scales:{ x:{stacked:true}, y:{stacked:true, beginAtZero:true}} },
+    chReasonsChannel
+  );
+
+  // 5) Amount vs Risk (bubble) by product
+  const colors=[OCEAN.primary,OCEAN.primaryStrong,OCEAN.accent,'#93c5fd','#1d4ed8'];
+  const bubDatasets = PRODUCTS.map((p,i)=>({
+    label:p,
+    data: loans.filter(l=>l.product===p).slice(0,40).map(l=>({ x:l.riskScore, y:l.amount, r: Math.max(6, Math.min(24, l.amount/25000)) })),
+    backgroundColor: colors[i%colors.length]+'99'
+  }));
+  chBubble = makeOrUpdateChart(
+    document.getElementById('chartBubble'),
+    'bubble',
+    { datasets: bubDatasets },
+    { parsing:false, scales:{ x:{min:0,max:1,title:{display:true,text:'Risk'}}, y:{title:{display:true,text:'Amount'}, ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k'}} } },
+    chBubble
+  );
+}
+
+function localExplain(l){
+  const out=[];
+  out.push(`This ${l.product.toLowerCase()} application was ${l.status}.`);
+  out.push(`Risk band: ${l.riskBand} (score ${l.riskScore}).`);
+  if(l.status==="approved"){
+    const factors=[];
+    if(l.creditScore>=700) factors.push("strong credit score");
+    if(l.dti<=0.35) factors.push("low DTI");
+    if(l.product!=="Personal" && l.ltv<=0.8) factors.push("healthy LTV");
+    out.push("Key factors: "+(factors.length? factors.join(", "): "policy alignment")+".");
+  } else {
+    const dr=[];
+    if(l.dti>0.45) dr.push("high DTI");
+    if(l.ltv>0.9) dr.push("high LTV");
+    if(l.creditScore<620) dr.push("low credit score");
+    out.push("Drivers: "+(dr.length? dr.join(", "): "policy criteria")+".");
+  }
+  out.push(`Channel: ${l.channel}. Officer: ${l.officer}.`);
+  return out.join(" ");
+}
+
+function updateTable(loans){
+  const tbody = document.getElementById('tbodyLoans');
+  tbody.innerHTML='';
+  loans.slice(-25).reverse().forEach(l=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${l.date}</td>
+      <td style="color:#0b3c6e;font-weight:600">${l.id}</td>
+      <td>${l.branch}</td>
+      <td>${l.product}</td>
+      <td style="text-align:right">${currency(l.amount)}</td>
+      <td>${l.status}</td>
+      <td>${l.reasonCategory}</td>
+      <td><span class="${l.riskBand==='Low'?'risk-low':l.riskBand==='Medium'?'risk-med':'risk-high'}">${l.riskBand}</span></td>
+      <td>${l.officer}</td>
+      <td>${l.channel}</td>
+      <td><button class="btn small">Explain</button></td>
+    `;
+    const btn = tr.querySelector('button');
+    btn.addEventListener('click', ()=>{
+      const exp = document.createElement('tr');
+      exp.className='explain';
+      const td = document.createElement('td');
+      td.colSpan=11;
+      td.style.padding='10px 12px';
+      td.textContent = localExplain(l);
+      exp.appendChild(td);
+      // toggle
+      if (tr.nextSibling && tr.nextSibling.classList.contains('explain')) {
+        tr.parentNode.removeChild(tr.nextSibling);
+      } else {
+        tr.parentNode.insertBefore(exp, tr.nextSibling);
+      }
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function exportCSV(loans){
+  if(!loans.length){ alert('No rows to export for current filters.'); return; }
+  const headers = Object.keys(loans[0]);
+  const esc = v => `"${String(v).replace(/"/g,'""')}"`;
+  const lines = [headers.join(','), ...loans.map(r=> headers.map(h=>esc(r[h]??'')).join(','))];
+  const blob = new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='azoul_vaultassist_loans.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ----------------------- Render loop ----------------------- */
+function refreshAll(){
+  const loans = filterLoans();
+  updateKPIs(loans);
+  updateCharts(loans);
+  updateTable(loans);
+}
+document.getElementById('exportBtn').addEventListener('click', ()=> exportCSV(filterLoans()));
+
+/* initial render */
+refreshAll();
+</script>
+</body>
+</html>
