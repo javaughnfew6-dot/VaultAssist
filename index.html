@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Azoul — VaultAssist (Blank Ball → User Info • Total Loaned empty)</title>
+<title>Azoul — VaultAssist (KPIs: Rate & Avg blank, Officer column blank)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- Chart.js via CDN -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js</script>
 
 <style>
   :root{
@@ -77,7 +77,7 @@
   .active{opacity:1;filter:none;pointer-events:auto}
   .hidden{display:none !important}
 
-  /* KPI tiles (Total Loaned will stay as em‑dash “—”) */
+  /* KPI tiles */
   .kpi{background:#fff;color:var(--ink);border-radius:16px;padding:14px 16px;box-shadow:var(--cardShadow)}
   .kpi .lbl{font-size:12px;color:#07345d;opacity:.85}
   .kpi .val{font-size:30px;font-weight:800;color:#07345d;letter-spacing:.5px}
@@ -188,11 +188,11 @@
     </div>
   </section>
 
-  <!-- 4) KPI BAR — “Total Loaned” stays blank “—” -->
+  <!-- 4) KPI BAR — Approval Rate + Avg stay blank (—) -->
   <section class="section grid-3 dimmed hidden" id="sec-kpis">
-    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">—</div></div>
-    <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">0%</div></div>
-    <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">$0</div></div>
+    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">$0</div></div>
+    <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">—</div></div>
+    <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">—</div></div>
   </section>
 
   <!-- 5) CHARTS -->
@@ -241,7 +241,7 @@
         <tbody id="tbodyLoans"></tbody>
       </table>
       <div style="font-size:12px;color:#0a3761;opacity:.85;margin-top:8px">
-        Officers are anonymized (Officer A–E). No real names are used anywhere.
+        Officers are anonymized and not displayed in the table (blank column).
       </div>
     </div>
   </section>
@@ -299,7 +299,7 @@ hero.addEventListener('click', ()=>{
       phone: phone.value?.trim()||''
     }));
 
-    // Reveal all dashboard sections (KPIs start with placeholders, but Total Loaned will remain “—”)
+    // Reveal all dashboard sections
     ['sec-controls','sec-kpis','sec-charts-row1','sec-charts-row2','sec-table']
       .forEach(id=>{
         const el=document.getElementById(id);
@@ -308,7 +308,7 @@ hero.addEventListener('click', ()=>{
         el.classList.add('active');
       });
 
-    // Build data views (charts + table) and partially update KPIs (Total Loaned stays “—”)
+    // Build data views
     refreshAll();
 
     // Scroll to controls after save
@@ -323,7 +323,7 @@ hero.addEventListener('click', ()=>{
   });
 })();
 
-/* ========= DATA (with anonymized officers) ========= */
+/* ========= DATA (with anonymized officers, but not shown in table) ========= */
 const BRANCHES = ["Downtown","Midtown","Uptown","Riverside"];
 const PRODUCTS = ["Mortgage","Auto","Personal","SMB","Student"];
 const REASONS  = ["Home purchase","Debt consolidation","Vehicle purchase","Working capital","Education","Emergency expenses","Refinance"];
@@ -383,24 +383,22 @@ elRole.addEventListener('change', ()=> {
 });
 [elOfficer, elBranch, elProduct, elRange, elSearch].forEach(e=> e.addEventListener('input', refreshAll));
 
-/* ========= KPI (Total Loaned blank) + CHARTS + TABLE ========= */
+/* ========= KPI (Approval Rate & Avg blank) + CHARTS + TABLE ========= */
 const kpiTotal = document.getElementById('kpiTotal');
 const kpiRate  = document.getElementById('kpiRate');
 const kpiAvg   = document.getElementById('kpiAvg');
 
-/* Keep "Total Loaned" empty (—); update the other two KPIs */
+/* Keep Approval Rate and Avg Approved Amount empty (“—”). 
+   Total Loaned still updates; if you want that blank too, replace it with '—' */
 function updateKPIsPartial(loans){
-  // Keep this empty on purpose
-  kpiTotal.textContent = '—';
-
-  // Compute rate & avg as usual
+  // Compute Total Loaned from approved loans
   const approved = loans.filter(l => l.status === "approved");
   const total    = approved.reduce((s,x) => s + x.amount, 0);
-  const rate     = approved.length / Math.max(loans.length, 1);
-  const avg      = approved.length ? (total / approved.length) : 0;
+  kpiTotal.textContent = currency(total);
 
-  kpiRate.textContent = (rate * 100).toFixed(1) + '%';
-  kpiAvg.textContent  = currency(avg);
+  // Keep these two blank on purpose
+  kpiRate.textContent = '—';
+  kpiAvg.textContent  = '—';
 }
 
 let chBranchRate, chOfficerAvg, chRisk, chReasonsChannel, chBubble, chProduct;
@@ -527,7 +525,7 @@ function localExplain(l){
     const d=[]; if(l.dti>0.45) d.push("high DTI"); if(l.ltv>0.9) d.push("high LTV"); if(l.creditScore<620) d.push("low credit score");
     out.push("Drivers: "+(d.length? d.join(", "): "policy criteria")+".");
   }
-  out.push(`Channel: ${l.channel}. Officer: ${l.officer}.`);
+  out.push(`Channel: ${l.channel}.`);
   return out.join(" ");
 }
 
@@ -545,7 +543,7 @@ function updateTable(loans){
       <td>${l.status}</td>
       <td>${l.reasonCategory}</td>
       <td><span class="${l.riskBand==='Low'?'risk-low':l.riskBand==='Medium'?'risk-med':'risk-high'}">${l.riskBand}</span></td>
-      <td></td>
+      <td></td> <!-- Officer intentionally blank -->
       <td>${l.channel}</td>
       <td><button class="btn small">Explain</button></td>
     `;
@@ -563,7 +561,7 @@ function updateTable(loans){
 /* ========= EXPORT ========= */
 function exportCSV(loans){
   if(!loans.length){ alert('No rows to export for current filters.'); return; }
-  const headers = Object.keys(loans[0]);
+  const headers = Object.keys(loans[0]).filter(h => h !== 'officer'); // drop officer on export, too
   const esc = v => `"${String(v).replace(/"/g,'""')}"`;
   const lines = [headers.join(','), ...loans.map(r=> headers.map(h=>esc(r[h]??'')).join(','))];
   const blob = new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
@@ -576,7 +574,7 @@ document.getElementById('exportBtn').addEventListener('click', ()=> exportCSV(fi
 /* ========= REFRESH ========= */
 function refreshAll(){
   const loans = filterLoans();
-  updateKPIsPartial(loans);  // <-- Total Loaned stays “—”; other two update
+  updateKPIsPartial(loans);            // <-- Rate & Avg show “—”
   updateCharts(loans);
   updateTable(loans);
 }
