@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Azoul — VaultAssist (Single Halo • Clickable Icons • Scroll)</title>
+<title>Azoul — VaultAssist (Single Halo • Clickable Icons • No KPIs)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <!-- Chart.js via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -49,14 +49,6 @@
   }
   .card .h{padding:12px 16px;border-bottom:1px solid #e6eef8;font-weight:700;color:#07345d}
   .card .b{padding:14px 16px}
-  .kpi{
-    background:#fff;color:var(--ink);
-    border-radius:16px;padding:14px 16px;
-    box-shadow:var(--cardShadow);
-    scroll-margin-top: 84px;
-  }
-  .kpi .lbl{font-size:12px;color:#07345d;opacity:.85}
-  .kpi .val{font-size:30px;font-weight:800;color:#07345d}
 
   /* Inputs */
   label{font-size:12px;opacity:.9}
@@ -200,13 +192,6 @@
     </div>
   </section>
 
-  <!-- KPIs (start at zero) -->
-  <section class="section grid-3 dimmed" id="sec-kpis">
-    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">$0</div></div>
-    <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">0%</div></div>
-    <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">$0</div></div>
-  </section>
-
   <!-- CHARTS row 1 -->
   <section class="section grid-3 dimmed" id="sec-charts-row1">
     <div class="card" id="sec-branch">
@@ -314,7 +299,7 @@ const LOANS = (()=> {
 let isActive = false;
 
 const ICONS = [
-  { emoji:"📊", label:"Analytics", target:"#sec-kpis" },
+  { emoji:"📊", label:"Analytics", target:"#sec-branch" },   // now charts (KPIs removed)
   { emoji:"🌐", label:"Global",    target:"#sec-branch" },
   { emoji:"💳", label:"Payments",  target:"#sec-product" },
   { emoji:"📶", label:"Digital",   target:"#sec-reasons" },
@@ -369,11 +354,7 @@ elRole.addEventListener('change', ()=> {
 });
 [elOfficer, elBranch, elProduct, elRange, elSearch].forEach(e=> e.addEventListener('input', ()=>{ if(isActive) refreshAll(); }));
 
-/* ======================= KPI & CHARTS & TABLE ======================= */
-const kpiTotal = document.getElementById('kpiTotal');
-const kpiRate  = document.getElementById('kpiRate');
-const kpiAvg   = document.getElementById('kpiAvg');
-
+/* ======================= CHARTS & TABLE ======================= */
 let chBranchRate, chOfficerAvg, chRisk, chReasonsChannel, chBubble, chProduct;
 
 function filterLoans(){
@@ -390,18 +371,6 @@ function filterLoans(){
                  : elRole.value==="Manager" ? branchOk : true; // HR sees all
     return within && searchOk && prodOk && (elRole.value==="Manager"? true : branchOk) && roleOk;
   });
-}
-
-function updateKPIs(loans){
-  const approved = loans.filter(l=> l.status==="approved");
-  const total = approved.reduce((s,x)=> s+x.amount, 0);
-  const rate = (approved.length / Math.max(loans.length,1));
-  const avg  = approved.length ? (total/approved.length) : 0;
-
-  // Fill KPIs
-  kpiTotal.textContent = currency(total);
-  kpiRate.textContent  = (rate*100).toFixed(1)+'%';
-  kpiAvg.textContent   = currency(avg);
 }
 
 function makeOrUpdateChart(ctx, type, data, options, instRef){
@@ -550,7 +519,7 @@ function updateTable(loans){
 function activateDashboard(){
   if(isActive) return;
   isActive = true;
-  ['sec-controls','sec-kpis','sec-charts-row1','sec-charts-row2','sec-table'].forEach(id=>{
+  ['sec-controls','sec-charts-row1','sec-charts-row2','sec-table'].forEach(id=>{
     const el = document.getElementById(id);
     el.classList.remove('dimmed'); el.classList.add('active');
   });
@@ -575,12 +544,11 @@ document.getElementById('exportBtn').addEventListener('click', ()=> isActive && 
 /* ======================= RENDER LOOP ======================= */
 function refreshAll(){
   const loans = filterLoans();
-  updateKPIs(loans);
   updateCharts(loans);
   updateTable(loans);
 }
 
-/* Start with KPIs at 0 and panels dimmed; data loads only after icon click */
+/* Start with panels dimmed; data loads only after icon click */
 </script>
 
 </body>
