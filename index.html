@@ -1,0 +1,515 @@
+import React, { useMemo, useState, useCallback } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { Search, Download, Info } from "lucide-react";
+
+/**
+ * ==========================================================
+ * Azoul — VaultAssist Banking Dashboard (Blue & White)
+ * Now with:
+ *  - Role-based views (Officer / Manager / HR)
+ *  - Risk scoring (DTI, LTV, Credit Score) + Risk Bands
+ *  - More charts: Branch approvals, Officer avg, Reasons×Channel, Risk dist
+ *  - CSV Export
+ *  - AI Explanations (rule-based fallback; API-ready hook)
+ * ==========================================================
+ */
+
+const COLORS = {
+  primary: "#1e40af",
+  light: "#60a5fa",
+  accent: "#38bdf8",
+  ink: "#0b1b3b",
+  good: "#10b981",
+  warn: "#f59e0b",
+  bad: "#ef4444",
+  grid: "#e5e7eb",
+};
+
+// ---------- MOCK DATA with Risk ----------
+const BRANCHES = ["Downtown", "Midtown", "Uptown", "Riverside"]; 
+const PRODUCTS = ["Mortgage", "Auto", "Personal", "SMB", "Student"]; 
+const REASONS = [
+  "Home purchase", "Debt consolidation", "Vehicle purchase", "Working capital",
+  "Education", "Emergency expenses", "Refinance"
+];
+const CHANNELS = ["In-Branch", "Online", "Broker"];
+const OFFICERS = ["A. Patel", "M. Chen", "R. Johnson", "S. Davis", "K. Garcia"];
+
+function rng(min:number,max:number){return Math.random()*(max-min)+min}
+function pick<T>(arr:T[]){return arr[Math.floor(Math.random()*arr.length)]}
+function riskScore(dti:number, ltv:number, cs:number){
+  // Normalize: higher DTI/LTV -> higher risk; higher credit score -> lower risk
+  const ndti = Math.min(1, dti/0.5);           // 0..1 (>=50% is very risky)
+  const nltv = Math.min(1, ltv/0.95);          // 0..1 (>=95% is very risky)
+  const ncs  = 1 - Math.min(1, (cs-550)/(820-550)); // 1 (bad) -> 0 (great)
+  const score = 0.4*ndti + 0.35*nltv + 0.25*ncs; // 0..1
+  return +score.toFixed(2);
+}
+function riskBand(score:number){
+  if(score < 0.33) return "Low";
+  if(score < 0.66) return "Medium";
+  return "High";
+}
+
+// generate ~480 loans over last ~6 months
+const MOCK_LOANS = (() => {
+  const out:any[]=[]; const now=new Date();
+  for(let i=0;i<480;i++){
+    const d=new Date(now); d.setDate(d.getDate()-Math.floor(Math.random()*180));
+    const product = pick(PRODUCTS);
+    const branch = pick(BRANCHES);
+    const officer = pick(OFFICERS);
+    const channel = pick(CHANNELS);
+    const reasonCategory = pick(REASONS);
+    const creditScore = Math.round(rng(560,810));
+    const dti = +(rng(0.1,0.55).toFixed(2));
+    const ltv = product==="Mortgage"? +(rng(0.5,0.97).toFixed(2)) : +(rng(0.2,0.9).toFixed(2));
+    const rscore = riskScore(dti, ltv, creditScore);
+    const rband = riskBand(rscore);
+    const base = product==="Mortgage"? rng(120000,650000) : product==="Auto"? rng(8000,65000) : product==="SMB"? rng(20000,250000) : rng(3000,55000);
+    const status = (rband==="High" && Math.random()<0.55) ? "declined" : (Math.random()<0.78?"approved":"declined");
+    const decisionReason = status==="approved"
+      ? (rband==="Low"?"Met policy; Low risk" : rband==="Medium"?"Met policy; Compensating factors" : "Exception approved; mitigants present")
+      : (dti>0.45?"Declined: DTI high" : ltv>0.9?"Declined: LTV high" : creditScore<620?"Declined: Credit score low":"Declined: Policy criteria");
+    const amount = Math.round(base/100)*100;
+    const customerSentiment = +((Math.random()*2-1)).toFixed(2);
+
+    out.push({
+      id:`LN-${10000+i}`,
+      date: d.toISOString().slice(0,10),
+      branch, product, amount, status, reasonCategory,
+      decisionReason, officer, channel,
+      creditScore, dti, ltv, riskScore:rscore, riskBand:rband,
+      customerSentiment,
+    });
+  }
+  return out.sort((a,b)=>a.date.localeCompare(b.date));
+})();
+
+const MOCK_EMPLOYEES = Array.from({length:18}).map((_,i)=>{
+  const depts=["Lending","Customer Success","Risk","Collections","Support"];
+  return { id:`E-${i+1}`,
+    name:["Alex","Morgan","Riley","Jordan","Taylor","Sam","Casey"][i%7]+` ${String.fromCharCode(65+(i%26))}.`,
+    dept:depts[i%depts.length],
+    branch:BRANCHES[i%BRANCHES.length],
+    sentimentScore:+(Math.random()*2-1).toFixed(2)
+  }
+});
+
+// ---------- Utils ----------
+const fmtCurrency = (n:number)=> n.toLocaleString(undefined,{style:"currency", currency:"USD", maximumFractionDigits:0});
+const pct = (n:number)=> `${(n*100).toFixed(1)}%`;
+const toCSV = (rows:any[]) => {
+  if(!rows.length) return "";
+  const headers = Object.keys(rows[0]);
+  const esc=(v:any)=>`"${String(v).replace(/"/g,'""')}"`;
+  const lines = [headers.join(","), ...rows.map(r=>headers.map(h=>esc(r[h]??"")).join(","))];
+  return lines.join("\n");
+}
+
+// ---------- Explanations ----------
+function localExplanation(l:any){
+  const parts:string[] = [];
+  parts.push(`This ${l.product.toLowerCase()} application was ${l.status}.`);
+  parts.push(`Risk band: ${l.riskBand} (score ${l.riskScore}).`);
+  if(l.status==="approved"){
+    parts.push("Key factors: ");
+    if(l.creditScore>=700) parts.push("• strong credit score");
+    if(l.dti<=0.35) parts.push("• low DTI");
+    if(l.product!=="Personal" && l.ltv<=0.8) parts.push("• healthy LTV");
+    if(parts.length===2) parts.push("• policy alignment");
+  } else {
+    parts.push("Drivers:");
+    if(l.dti>0.45) parts.push("• high DTI");
+    if(l.ltv>0.9) parts.push("• high LTV");
+    if(l.creditScore<620) parts.push("• low credit score");
+  }
+  parts.push(`Channel: ${l.channel}. Officer: ${l.officer}.`);
+  return parts.join(" ");
+}
+
+// If you wire a backend, call /api/explain with loan payload and return {text}
+async function fetchAiExplanation(loan:any){
+  try{
+    const res = await fetch("/api/explain", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(loan)});
+    if(!res.ok) throw new Error("No AI endpoint");
+    const data = await res.json();
+    return data.text as string;
+  }catch{
+    return localExplanation(loan); // fallback
+  }
+}
+
+export default function AzoulVaultAssistDashboard(){
+  // Filters & role
+  const [role, setRole] = useState<"Officer"|"Manager"|"HR">("Manager");
+  const [officer, setOfficer] = useState<string>(OFFICERS[0]);
+  const [branch, setBranch] = useState<string>("All branches");
+  const [product, setProduct] = useState<string>("All products");
+  const [range, setRange] = useState<string>("last90");
+  const [search, setSearch] = useState("");
+  const [expandingId, setExpandingId] = useState<string|null>(null);
+  const [explanations, setExplanations] = useState<Record<string,string>>({});
+
+  const rangeDays = useMemo(()=>({last30:30,last90:90,last180:180} as const)[range as any],[range]);
+
+  const filteredLoans = useMemo(()=>{
+    const after = new Date(); after.setDate(after.getDate()-rangeDays);
+    return MOCK_LOANS.filter(l=>{
+      const within = new Date(l.date) >= after;
+      const bySearch = !search || JSON.stringify(l).toLowerCase().includes(search.toLowerCase());
+      const byProd = product==="All products" || l.product===product;
+      const byBranch = branch==="All branches" || l.branch===branch;
+      const byRole = role==="Officer"? l.officer===officer : role==="Manager"? byBranch : true; // HR sees all
+      return within && bySearch && byProd && byBranch && byRole;
+    });
+  },[branch, product, rangeDays, search, role, officer]);
+
+  const kpis = useMemo(()=>{
+    const approved = filteredLoans.filter(l=>l.status==="approved");
+    const totalLoaned = approved.reduce((s,x)=>s+x.amount,0);
+    const approvalRate = approved.length/Math.max(1,filteredLoans.length);
+    const avgAmount = approved.length? totalLoaned/approved.length : 0;
+    return { totalLoaned, approvalRate, avgAmount };
+  },[filteredLoans]);
+
+  // Charts data
+  const approvalByBranch = useMemo(()=>{
+    const map = new Map<string,{name:string, approved:number, total:number}>();
+    for(const l of filteredLoans){
+      const key=l.branch; if(!map.has(key)) map.set(key,{name:key,approved:0,total:0});
+      const r=map.get(key)!; r.total++; if(l.status==="approved") r.approved++;
+    }
+    return Array.from(map.values()).map(x=>({...x, rate: +(x.approved/Math.max(1,x.total)).toFixed(2)}));
+  },[filteredLoans]);
+
+  const avgByOfficer = useMemo(()=>{
+    const map = new Map<string,{name:string, sum:number, cnt:number}>();
+    for(const l of filteredLoans.filter(x=>x.status==="approved")){
+      if(!map.has(l.officer)) map.set(l.officer,{name:l.officer,sum:0,cnt:0});
+      const r=map.get(l.officer)!; r.sum+=l.amount; r.cnt++;
+    }
+    return Array.from(map.values()).map(x=>({name:x.name, avg: Math.round(x.sum/Math.max(1,x.cnt))}));
+  },[filteredLoans]);
+
+  const reasonsByChannel = useMemo(()=>{
+    // build stacked dataset per channel
+    const channels = Array.from(new Set(filteredLoans.map(l=>l.channel)));
+    const reasons = Array.from(new Set(filteredLoans.map(l=>l.reasonCategory)));
+    const rows = channels.map(c=>{
+      const row:any={channel:c};
+      for(const r of reasons) row[r]=0;
+      for(const l of filteredLoans.filter(x=>x.status==="approved" && x.channel===c)) row[l.reasonCategory]++;
+      return row;
+    });
+    return { reasons, rows };
+  },[filteredLoans]);
+
+  const riskDist = useMemo(()=>{
+    const bands = { Low:0, Medium:0, High:0 } as Record<string,number>;
+    for(const l of filteredLoans) bands[l.riskBand]++;
+    return Object.entries(bands).map(([name,value])=>({name,value}));
+  },[filteredLoans]);
+
+  const exportCSV = useCallback(()=>{
+    const csv = toCSV(filteredLoans);
+    const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='vaultassist_loans.csv'; a.click();
+    URL.revokeObjectURL(url);
+  },[filteredLoans]);
+
+  const getExplanation = useCallback(async(id:string)=>{
+    if(explanations[id]){ setExpandingId(expandingId===id?null:id); return; }
+    const loan = filteredLoans.find(l=>l.id===id); if(!loan) return;
+    setExpandingId(id);
+    const text = await fetchAiExplanation(loan);
+    setExplanations(prev=>({...prev,[id]:text}));
+  },[filteredLoans, explanations, expandingId]);
+
+  const reasonPalette = [COLORS.primary, COLORS.accent, COLORS.light, "#93c5fd", "#1d4ed8", "#0ea5e9", "#94a3b8"];
+
+  return (
+    <TooltipProvider>
+      <div className="min-h-screen bg-white text-slate-900">
+        {/* Header */}
+        <header className="sticky top-0 bg-white/90 border-b border-blue-100 z-20">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-3 items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-blue-900">Azoul</h1>
+              <p className="text-xs text-blue-600">VaultAssist — Banking Intelligence</p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={exportCSV} className="bg-blue-700 hover:bg-blue-800"><Download className="h-4 w-4 mr-2"/>Export CSV</Button>
+            </div>
+          </div>
+        </header>
+
+        {/* Controls */}
+        <section className="max-w-7xl mx-auto px-4 pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+          <div>
+            <label className="text-xs text-blue-900/80">Role</label>
+            <Select value={role} onValueChange={(v:any)=>setRole(v)}>
+              <SelectTrigger className="bg-white border-blue-200"><SelectValue/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Officer">Officer</SelectItem>
+                <SelectItem value="Manager">Manager</SelectItem>
+                <SelectItem value="HR">HR</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {role==="Officer" && (
+            <div>
+              <label className="text-xs text-blue-900/80">Officer</label>
+              <Select value={officer} onValueChange={setOfficer}>
+                <SelectTrigger className="bg-white border-blue-200"><SelectValue/></SelectTrigger>
+                <SelectContent>{OFFICERS.map(o=> <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
+          <div>
+            <label className="text-xs text-blue-900/80">Branch</label>
+            <Select value={branch} onValueChange={setBranch}>
+              <SelectTrigger className="bg-white border-blue-200"><SelectValue/></SelectTrigger>
+              <SelectContent>{["All branches",...BRANCHES].map(b=> <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-blue-900/80">Product</label>
+            <Select value={product} onValueChange={setProduct}>
+              <SelectTrigger className="bg-white border-blue-200"><SelectValue/></SelectTrigger>
+              <SelectContent>{["All products",...PRODUCTS].map(p=> <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-blue-900/80">Date Range</label>
+            <Tabs value={range} onValueChange={setRange}>
+              <TabsList className="grid grid-cols-3 bg-blue-50 text-blue-900">
+                <TabsTrigger value="last30">30d</TabsTrigger>
+                <TabsTrigger value="last90">90d</TabsTrigger>
+                <TabsTrigger value="last180">180d</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          <div className="flex flex-col">
+            <label className="text-xs text-blue-900/80">Search</label>
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-blue-700"/>
+              <Input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Find loans, officers, reasons…" className="pl-8 bg-white border-blue-200"/>
+            </div>
+          </div>
+        </section>
+
+        {/* KPIs */}
+        <section className="max-w-7xl mx-auto px-4 py-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card className="border-blue-100 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-blue-900 text-sm">Total Loaned</CardTitle></CardHeader><CardContent className="text-2xl font-semibold text-blue-800">{fmtCurrency(kpis.totalLoaned)}</CardContent></Card>
+          <Card className="border-blue-100 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-blue-900 text-sm">Approval Rate</CardTitle></CardHeader><CardContent className="text-2xl font-semibold text-blue-800">{pct(kpis.approvalRate)}</CardContent></Card>
+          <Card className="border-blue-100 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-blue-900 text-sm">Avg Approved Amount</CardTitle></CardHeader><CardContent className="text-2xl font-semibold text-blue-800">{fmtCurrency(kpis.avgAmount)}</CardContent></Card>
+        </section>
+
+        {/* Charts */}
+        <section className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Approval by Branch */}
+          <Card className="lg:col-span-1 border-blue-100 shadow-sm">
+            <CardHeader className="pb-1"><CardTitle className="text-blue-900">Approval Rate by Branch</CardTitle></CardHeader>
+            <CardContent className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={approvalByBranch}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid}/>
+                  <XAxis dataKey="name"/>
+                  <YAxis tickFormatter={(v)=>pct(v)}/>
+                  <Tooltip formatter={(v:number)=>pct(v as number)}/>
+                  <Bar dataKey="rate" name="Approval Rate" fill={COLORS.primary}/>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Avg by Officer */}
+          <Card className="lg:col-span-1 border-blue-100 shadow-sm">
+            <CardHeader className="pb-1"><CardTitle className="text-blue-900">Avg Approved Amount by Officer</CardTitle></CardHeader>
+            <CardContent className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={avgByOfficer}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid}/>
+                  <XAxis dataKey="name"/>
+                  <YAxis tickFormatter={(v)=>`$${(v/1000).toFixed(0)}k`}/>
+                  <Tooltip formatter={(v:number)=>fmtCurrency(v as number)}/>
+                  <Bar dataKey="avg" name="Avg Amount" fill={COLORS.accent}/>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Risk Distribution */}
+          <Card className="lg:col-span-1 border-blue-100 shadow-sm">
+            <CardHeader className="pb-1"><CardTitle className="text-blue-900">Risk Distribution</CardTitle></CardHeader>
+            <CardContent className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={riskDist} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75} paddingAngle={2}>
+                    {riskDist.map((_,i)=>(<Cell key={i} fill={[COLORS.good, COLORS.warn, COLORS.bad][i]}/>))}
+                  </Pie>
+                  <Tooltip/>
+                  <Legend/>
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Reasons × Channel (stacked) */}
+          <Card className="lg:col-span-3 border-blue-100 shadow-sm">
+            <CardHeader className="pb-1"><CardTitle className="text-blue-900">Why Loans Were Made by Channel</CardTitle></CardHeader>
+            <CardContent className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={reasonsByChannel.rows}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid}/>
+                  <XAxis dataKey="channel"/>
+                  <YAxis/>
+                  <Tooltip/>
+                  <Legend/>
+                  {reasonsByChannel.reasons.map((r,i)=> (
+                    <Bar key={r} dataKey={r} stackId="a" fill={reasonPalette[i%reasonPalette.length]} />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Loans Table with Explanations */}
+        <section className="max-w-7xl mx-auto px-4 mt-4">
+          <Card className="border-blue-100 shadow-sm">
+            <CardHeader className="pb-1"><CardTitle className="text-blue-900">Recent Loans & Reasons</CardTitle></CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-blue-50 text-blue-900">
+                    <tr>
+                      <th className="text-left p-2">Date</th>
+                      <th className="text-left p-2">Loan #</th>
+                      <th className="text-left p-2">Branch</th>
+                      <th className="text-left p-2">Product</th>
+                      <th className="text-right p-2">Amount</th>
+                      <th className="text-left p-2">Status</th>
+                      <th className="text-left p-2">Why (Category)</th>
+                      <th className="text-left p-2">Risk</th>
+                      <th className="text-left p-2">Officer</th>
+                      <th className="text-left p-2">Channel</th>
+                      <th className="text-left p-2">Explain</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLoans.slice(-25).reverse().map((l)=> (
+                      <React.Fragment key={l.id}>
+                        <tr className="border-b border-blue-50/60 hover:bg-blue-50/40">
+                          <td className="p-2">{l.date}</td>
+                          <td className="p-2 text-blue-800 font-medium">{l.id}</td>
+                          <td className="p-2">{l.branch}</td>
+                          <td className="p-2">{l.product}</td>
+                          <td className="p-2 text-right">{fmtCurrency(l.amount)}</td>
+                          <td className="p-2">{l.status}</td>
+                          <td className="p-2">{l.reasonCategory}</td>
+                          <td className="p-2">
+                            <span className={l.riskBand==="Low"?"text-green-700":"" || l.riskBand==="Medium"?"text-amber-700":"" || l.riskBand==="High"?"text-red-700":""}>{l.riskBand}</span>
+                          </td>
+                          <td className="p-2">{l.officer}</td>
+                          <td className="p-2">{l.channel}</td>
+                          <td className="p-2">
+                            <Button variant="outline" size="sm" onClick={()=>getExplanation(l.id)}>
+                              <Info className="h-4 w-4 mr-1"/>Explain
+                            </Button>
+                          </td>
+                        </tr>
+                        {expandingId===l.id && (
+                          <tr className="bg-blue-50/50">
+                            <td colSpan={11} className="p-3 text-blue-900 text-sm">
+                              {explanations[l.id] || "Generating explanation…"}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* HR-only: (optional) simple employee pulse list */}
+        {role==="HR" && (
+          <section className="max-w-7xl mx-auto px-4 mt-4">
+            <Card className="border-blue-100 shadow-sm">
+              <CardHeader className="pb-1"><CardTitle className="text-blue-900">Employee Sentiment (summary)</CardTitle></CardHeader>
+              <CardContent>
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {MOCK_EMPLOYEES.map(e=> (
+                    <div key={e.id} className="border border-blue-100 rounded p-2 text-sm">
+                      <div className="font-medium text-blue-900">{e.name}</div>
+                      <div className="text-blue-700">Dept: {e.dept}</div>
+                      <div>Sentiment: <span className={e.sentimentScore>=0.4?"text-green-700": e.sentimentScore<=-0.2?"text-red-700":"text-amber-700"}>{e.sentimentScore.toFixed(2)}</span></div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-blue-700/80 mt-2">Note: Replace with your HR survey or sentiment API feed.</p>
+              </CardContent>
+            </Card>
+          </section>
+        )}
+
+        {/* Footer */}
+        <footer className="py-8 text-center text-xs text-blue-700">
+          Azoul • VaultAssist • <span className="italic">Quasinss</span>
+        </footer>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+/* =============================================================
+   OPTIONAL BACKEND WIRES (for your server)
+   -------------------------------------------------------------
+   1) Add an Express route for explanations (Azure OpenAI optional):
+
+   // server/explain.ts (Node/Express)
+   import express from 'express';
+   import fetch from 'node-fetch';
+   const router = express.Router();
+   router.post('/explain', async (req,res)=>{
+     const loan = req.body;
+     const prompt = `Explain the ${loan.product} loan decision (status: ${loan.status}) in 4 short bullet points focusing on DTI(${loan.dti}), LTV(${loan.ltv}), credit score(${loan.creditScore}).`;
+     try{
+       // Example Azure OpenAI call (pseudo):
+       // const r = await fetch(process.env.AZURE_OPENAI_ENDPOINT!, { ... });
+       // const data = await r.json();
+       // return res.json({ text: data.choices[0].message.content });
+       return res.json({ text: `AI explanation placeholder for ${loan.id}.` });
+     }catch(e){
+       return res.status(200).json({ text: `Local explanation fallback: ${loan.status} due to policy factors.`});
+     }
+   });
+   export default router;
+
+   2) Mount it in your server: app.use('/api', explainRouter)
+   3) Frontend already calls POST /api/explain and falls back to local if not present.
+   4) Replace MOCK_LOANS with your DB/API and enforce RBAC on the server too.
+   ============================================================= */
