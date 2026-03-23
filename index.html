@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Azoul — VaultAssist (Single Halo • Clickable Icons • No KPIs)</title>
+<title>Azoul — VaultAssist (Single Halo • KPIs hidden numbers)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <!-- Chart.js via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -32,7 +32,7 @@
     background:
       radial-gradient(1100px 520px at 70% -10%, rgba(56,189,248,.15), transparent),
       linear-gradient(135deg, var(--bg-start), var(--bg-end));
-    overflow-y:auto; /* ensure page scrolls */
+    overflow-y:auto; /* allow scrolling */
   }
   .container{max-width:1180px;margin:0 auto;padding:16px}
   .section{margin-top:16px}
@@ -40,17 +40,28 @@
   .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
   .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   @media (max-width:980px){.grid-3,.grid-2{grid-template-columns:1fr}}
+
   .card{
     background:#fff;color:var(--ink);
-    border-radius:16px;
-    box-shadow:var(--cardShadow);
+    border-radius:16px; box-shadow:var(--cardShadow);
     overflow:hidden;
-    scroll-margin-top: 84px; /* leave room under hero on anchor scroll */
+    scroll-margin-top: 84px; /* nice offset under hero on anchor scroll */
   }
   .card .h{padding:12px 16px;border-bottom:1px solid #e6eef8;font-weight:700;color:#07345d}
   .card .b{padding:14px 16px}
 
-  /* Inputs */
+  /* KPI bar (labels visible, numbers removed via em‑dash) */
+  .kpi{
+    background:#fff;color:var(--ink);
+    border-radius:16px;padding:14px 16px; box-shadow:var(--cardShadow);
+  }
+  .kpi .lbl{font-size:12px;color:#07345d;opacity:.85}
+  .kpi .val{
+    font-size:30px;font-weight:800;color:#07345d;
+    letter-spacing:.5px;
+  }
+
+  /* Controls */
   label{font-size:12px;opacity:.9}
   select,input{
     appearance:none; border:1px solid #cfe5fb; background:#fff; color:#07345d;
@@ -69,14 +80,8 @@
     background:linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.07));
     border:1px solid rgba(255,255,255,.15); border-radius:16px;
   }
-  .halo{
-    position:relative;width:390px;height:390px;filter:drop-shadow(0 0 40px rgba(56,189,248,.5));
-  }
-  .ring{ /* ONE ring only */
-    position:absolute;inset:0;border-radius:50%;
-    border:1px dashed rgba(255,255,255,.28);
-    box-shadow: 0 0 120px rgba(56,189,248,.35);
-  }
+  .halo{ position:relative;width:390px;height:390px;filter:drop-shadow(0 0 40px rgba(56,189,248,.5)); }
+  .ring{ position:absolute;inset:0;border-radius:50%; border:1px dashed rgba(255,255,255,.28); box-shadow: 0 0 120px rgba(56,189,248,.35); }
   .orb{
     position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
     width:150px;height:150px;border-radius:50%;
@@ -101,7 +106,7 @@
   .ico:hover{background:rgba(255,255,255,.18);transform:scale(1.05)}
   .ico:active{transform:scale(0.98)}
 
-  /* Dim dashboard until activation */
+  /* Dim panels until activation */
   .dimmed{opacity:.25;filter:grayscale(.1);pointer-events:none;transition:opacity .25s ease, filter .25s ease}
   .active{opacity:1;filter:none;pointer-events:auto}
 
@@ -113,13 +118,10 @@
   .risk-low{color:#0f766e}.risk-med{color:#b45309}.risk-high{color:#b91c1c}
   .explain{background:#f7fbff;color:#0b1b3b}
 
-  /* Scroll target pulse */
-  .pulse{
-    animation: pulseBorder .9s ease-out 1;
-    box-shadow: 0 0 0 0 rgba(56,189,248,.0), 0 0 0 3px rgba(56,189,248,.25);
-  }
+  /* Pulse highlight when icon scrolls to a section */
+  .pulse{ animation: pulseBorder .9s ease-out 1; box-shadow: 0 0 0 3px rgba(56,189,248,.25); }
   @keyframes pulseBorder{
-    0% { box-shadow: 0 0 0 0 rgba(56,189,248,.55); }
+    0% { box-shadow: 0 0 0 3px rgba(56,189,248,.55); }
     100%{ box-shadow: 0 0 0 0 rgba(56,189,248,0); }
   }
 </style>
@@ -190,6 +192,13 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- KPI BAR (labels only; numbers removed) -->
+  <section class="section grid-3 dimmed" id="sec-kpis">
+    <div class="kpi"><div class="lbl">Total Loaned</div><div class="val" id="kpiTotal">—</div></div>
+    <div class="kpi"><div class="lbl">Approval Rate</div><div class="val" id="kpiRate">—</div></div>
+    <div class="kpi"><div class="lbl">Avg Approved Amount</div><div class="val" id="kpiAvg">—</div></div>
   </section>
 
   <!-- CHARTS row 1 -->
@@ -295,11 +304,11 @@ const LOANS = (()=> {
   return out.sort((a,b)=> a.date.localeCompare(b.date) );
 })();
 
-/* ======================= HALO ICONS (CLICKABLE → SCROLL) ======================= */
+/* ======================= HALO ICONS (CLICK → SCROLL) ======================= */
 let isActive = false;
 
 const ICONS = [
-  { emoji:"📊", label:"Analytics", target:"#sec-branch" },   // now charts (KPIs removed)
+  { emoji:"📊", label:"Analytics", target:"#sec-branch" },
   { emoji:"🌐", label:"Global",    target:"#sec-branch" },
   { emoji:"💳", label:"Payments",  target:"#sec-product" },
   { emoji:"📶", label:"Digital",   target:"#sec-reasons" },
@@ -329,9 +338,7 @@ function onIconClick(targetSelector){
   const el = document.querySelector(targetSelector);
   if(!el) return;
   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  el.classList.remove('pulse'); // restart animation if clicked repeatedly
-  void el.offsetWidth;
-  el.classList.add('pulse');
+  el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
 }
 
 /* ======================= FILTERS ======================= */
@@ -453,7 +460,7 @@ function updateCharts(loans){
     document.getElementById('chartBubble'),
     'bubble',
     { datasets: bubDatasets },
-    { parsing:false, scales:{ x:{min:0,max:1,title:{display:true,text:'Risk'}}, y:{title:{display:true,text:'Amount'}, ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k'}} } },
+    { parsing:false, scales:{ x:{min:0,max:1,title:{display:true,text:'Risk'}}, y:{title:{display:true,text:'Amount'}, ticks:{callback:v=>'$'+(v/1000).toFixed(0)} } } },
     chBubble
   );
 
@@ -519,10 +526,11 @@ function updateTable(loans){
 function activateDashboard(){
   if(isActive) return;
   isActive = true;
-  ['sec-controls','sec-charts-row1','sec-charts-row2','sec-table'].forEach(id=>{
+  ['sec-controls','sec-kpis','sec-charts-row1','sec-charts-row2','sec-table'].forEach(id=>{
     const el = document.getElementById(id);
     el.classList.remove('dimmed'); el.classList.add('active');
   });
+  // IMPORTANT: KPIs remain as "—" (numbers hidden). We only load charts/table.
   refreshAll();
   const halo = document.getElementById('halo');
   halo.animate([{transform:'scale(1)'},{transform:'scale(1.02)'},{transform:'scale(1)'}],{duration:420,easing:'ease-out'});
@@ -544,11 +552,12 @@ document.getElementById('exportBtn').addEventListener('click', ()=> isActive && 
 /* ======================= RENDER LOOP ======================= */
 function refreshAll(){
   const loans = filterLoans();
-  updateCharts(loans);
-  updateTable(loans);
+  updateCharts(loans);   // keep charts alive
+  updateTable(loans);    // keep table alive
 }
 
-/* Start with panels dimmed; data loads only after icon click */
+/* Start with panels dimmed; when the user clicks a halo icon, dashboard activates.
+   KPI numbers remain "—" by design (numbers removed, bar kept). */
 </script>
 
 </body>
